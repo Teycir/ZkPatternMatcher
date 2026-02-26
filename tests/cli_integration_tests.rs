@@ -3,7 +3,7 @@ use std::process::Command;
 #[test]
 fn test_cli_scan_vulnerable_circuit_exits_with_error() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--", 
+        .args(["run", "--bin", "zkpm", "--", 
                 "patterns/real_vulnerabilities.yaml",
                 "tests/real_vulnerabilities/underconstrained_multiplier.circom"])
         .output()
@@ -19,7 +19,7 @@ fn test_cli_scan_vulnerable_circuit_exits_with_error() {
 #[test]
 fn test_cli_json_output_is_valid() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "--format", "json",
                 "patterns/real_vulnerabilities.yaml",
                 "tests/real_vulnerabilities/underconstrained_multiplier.circom"])
@@ -38,7 +38,7 @@ fn test_cli_json_output_is_valid() {
 #[test]
 fn test_cli_validate_command() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "validate",
                 "patterns/real_vulnerabilities.yaml"])
         .output()
@@ -54,7 +54,7 @@ fn test_cli_validate_command() {
 #[test]
 fn test_cli_list_command() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "list",
                 "patterns/real_vulnerabilities.yaml"])
         .output()
@@ -71,7 +71,7 @@ fn test_cli_list_command() {
 #[test]
 fn test_cli_handles_missing_file() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "patterns/real_vulnerabilities.yaml",
                 "nonexistent.circom"])
         .output()
@@ -87,7 +87,7 @@ fn test_cli_handles_missing_file() {
 #[test]
 fn test_cli_handles_invalid_pattern_file() {
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "nonexistent_pattern.yaml",
                 "tests/real_vulnerabilities/underconstrained_multiplier.circom"])
         .output()
@@ -110,7 +110,7 @@ fn test_cli_scan_clean_circuit_succeeds() {
     std::fs::write("/tmp/clean_test.circom", clean_circuit).unwrap();
     
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "zkpm", "--",
+        .args(["run", "--bin", "zkpm", "--",
                 "patterns/underconstrained.yaml",
                 "/tmp/clean_test.circom"])
         .output()

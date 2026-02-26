@@ -78,10 +78,10 @@ fn main() -> Result<()> {
             
             for pattern in &library.patterns {
                 let severity = pattern.severity.as_ref().unwrap_or(&Severity::Info);
-                println!("{} {} [{}] - {}", 
+                println!("{} {} [{:?}] - {}", 
                     severity_icon(severity),
                     pattern.id, 
-                    format!("{:?}", severity),
+                    severity,
                     pattern.message
                 );
             }

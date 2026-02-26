@@ -35,7 +35,7 @@ fn test_ci_pipeline_simulation() {
          component main = Test();").unwrap();
     
     let output = Command::new("cargo")
-        .args(&["run", "--quiet", "--bin", "zkpm", "--",
+        .args(["run", "--quiet", "--bin", "zkpm", "--",
                 "patterns/real_vulnerabilities.yaml",
                 circuit_path.to_str().unwrap()])
         .output()
@@ -50,7 +50,7 @@ fn test_ci_pipeline_simulation() {
 fn test_json_parsing_for_automation() {
     // Real-world: parsing JSON in scripts/tools
     let output = Command::new("cargo")
-        .args(&["run", "--quiet", "--bin", "zkpm", "--",
+        .args(["run", "--quiet", "--bin", "zkpm", "--",
                 "--format", "json",
                 "patterns/real_vulnerabilities.yaml",
                 "tests/real_vulnerabilities/weak_nullifier.circom"])
@@ -74,7 +74,7 @@ fn test_json_parsing_for_automation() {
 fn test_pattern_library_discovery() {
     // Real-world: discovering what patterns are available
     let output = Command::new("cargo")
-        .args(&["run", "--quiet", "--bin", "zkpm", "--",
+        .args(["run", "--quiet", "--bin", "zkpm", "--",
                 "list",
                 "patterns/real_vulnerabilities.yaml"])
         .output()
@@ -113,7 +113,7 @@ fn test_large_file_handling() {
     fs::write(&large_circuit, content).unwrap();
     
     let output = Command::new("cargo")
-        .args(&["run", "--quiet", "--bin", "zkpm", "--",
+        .args(["run", "--quiet", "--bin", "zkpm", "--",
                 "patterns/real_vulnerabilities.yaml",
                 large_circuit.to_str().unwrap()])
         .output()
