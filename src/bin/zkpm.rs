@@ -19,6 +19,29 @@ struct Summary {
     info: usize,
 }
 
+impl Summary {
+    fn from_matches(matches: &[PatternMatch]) -> Self {
+        Self {
+            total: matches.len(),
+            critical: matches.iter().filter(|m| m.severity == Severity::Critical).count(),
+            high: matches.iter().filter(|m| m.severity == Severity::High).count(),
+            medium: matches.iter().filter(|m| m.severity == Severity::Medium).count(),
+            low: matches.iter().filter(|m| m.severity == Severity::Low).count(),
+            info: matches.iter().filter(|m| m.severity == Severity::Info).count(),
+        }
+    }
+}
+
+fn severity_icon(severity: &Severity) -> &'static str {
+    match severity {
+        Severity::Critical => "🔴",
+        Severity::High => "🟠",
+        Severity::Medium => "🟡",
+        Severity::Low => "🔵",
+        Severity::Info => "ℹ️",
+    }
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     
@@ -73,20 +96,10 @@ fn main() -> Result<()> {
 }
 
 fn output_json(matches: &[PatternMatch]) -> Result<()> {
-    let summary = Summary {
-        total: matches.len(),
-        critical: matches.iter().filter(|m| m.severity == Severity::Critical).count(),
-        high: matches.iter().filter(|m| m.severity == Severity::High).count(),
-        medium: matches.iter().filter(|m| m.severity == Severity::Medium).count(),
-        low: matches.iter().filter(|m| m.severity == Severity::Low).count(),
-        info: matches.iter().filter(|m| m.severity == Severity::Info).count(),
-    };
-    
     let output = JsonOutput {
         matches: matches.to_vec(),
-        summary,
+        summary: Summary::from_matches(matches),
     };
-    
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
 }
@@ -100,15 +113,7 @@ fn output_text(matches: &[PatternMatch]) -> Result<()> {
     println!("Found {} matches:\n", matches.len());
     
     for m in matches {
-        let severity_icon = match m.severity {
-            Severity::Critical => "🔴",
-            Severity::High => "🟠",
-            Severity::Medium => "🟡",
-            Severity::Low => "🔵",
-            Severity::Info => "ℹ️",
-        };
-        
-        println!("{} [{:?}] {}", severity_icon, m.severity, m.message);
+        println!("{} [{:?}] {}", severity_icon(&m.severity), m.severity, m.message);
         println!("   Pattern: {}", m.pattern_id);
         println!("   Location: {}:{}", m.location.line, m.location.column);
         println!("   Matched: {}", m.location.matched_text);
