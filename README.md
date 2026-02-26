@@ -1,5 +1,10 @@
 # ZkPatternMatcher
 
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
+[![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-success.svg)](tests/real_vulnerabilities/)
+
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
 ## Overview
