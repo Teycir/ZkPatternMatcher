@@ -77,7 +77,21 @@ Found 4 matches:
 zkpm validate patterns/underconstrained.yaml
 ```
 
-### 3. JSON Output
+### 3. List Patterns
+
+```bash
+zkpm list patterns/real_vulnerabilities.yaml
+```
+
+**Output:**
+```
+🔴 underconstrained_assignment [Critical] - Unconstrained assignment detected
+🟠 missing_constraint_comment [High] - Missing constraint
+
+Total: 5 patterns
+```
+
+### 4. JSON Output
 
 ```bash
 zkpm --format json patterns/real_vulnerabilities.yaml tests/real_vulnerabilities/underconstrained_multiplier.circom
@@ -102,7 +116,7 @@ zkpm --format json patterns/real_vulnerabilities.yaml tests/real_vulnerabilities
 }
 ```
 
-### 4. Use as Library
+### 5. Use as Library
 
 ```rust
 use zk_pattern_matcher::{load_pattern_library, PatternMatcher};

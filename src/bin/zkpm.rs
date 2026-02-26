@@ -45,9 +45,10 @@ fn severity_icon(severity: &Severity) -> &'static str {
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     
-    if args.len() < 3 {
+    if args.len() < 2 {
         eprintln!("Usage: zkpm [--format json|text] <pattern.yaml> <target_file>");
         eprintln!("       zkpm validate <pattern.yaml>");
+        eprintln!("       zkpm list <pattern.yaml>");
         std::process::exit(1);
     }
     
@@ -69,6 +70,23 @@ fn main() -> Result<()> {
             if !library.invariants.is_empty() {
                 println!("  {} invariants defined", library.invariants.len());
             }
+            Ok(())
+        }
+        "list" => {
+            let pattern_path = PathBuf::from(&args[arg_offset + 1]);
+            let library = load_pattern_library(&pattern_path)?;
+            
+            for pattern in &library.patterns {
+                let severity = pattern.severity.as_ref().unwrap_or(&Severity::Info);
+                println!("{} {} [{}] - {}", 
+                    severity_icon(severity),
+                    pattern.id, 
+                    format!("{:?}", severity),
+                    pattern.message
+                );
+            }
+            
+            println!("\nTotal: {} patterns", library.patterns.len());
             Ok(())
         }
         _ => {
