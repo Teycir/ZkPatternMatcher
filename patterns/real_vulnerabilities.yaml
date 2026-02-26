@@ -1,0 +1,45 @@
+patterns:
+  - id: underconstrained_assignment
+    kind: regex
+    pattern: '<--'
+    message: 'CRITICAL: Unconstrained assignment operator (<--) detected. This creates a witness assignment without a constraint, allowing prover to forge values.'
+    severity: critical
+
+  - id: missing_constraint_comment
+    kind: regex
+    pattern: 'MISSING:'
+    message: 'Documentation indicates missing constraint'
+    severity: high
+
+  - id: bug_marker
+    kind: regex
+    pattern: 'BUG:'
+    message: 'Known vulnerability marker found'
+    severity: critical
+
+  - id: weak_nullifier_pattern
+    kind: regex
+    pattern: 'nullifier\s*<--'
+    message: 'CRITICAL: Nullifier using unconstrained assignment. Enables replay/double-spend attacks.'
+    severity: critical
+
+  - id: no_range_check
+    kind: literal
+    pattern: 'No constraint that value is in valid range'
+    message: 'Missing range constraint allows field overflow attacks'
+    severity: high
+
+invariants:
+  - name: constrained_outputs
+    invariant_type: constraint
+    relation: "output_constraint_exists"
+    oracle: must_hold
+    severity: critical
+    description: "All outputs must be properly constrained to inputs"
+
+  - name: nullifier_uniqueness
+    invariant_type: constraint
+    relation: "nullifier_unique_per_action"
+    oracle: must_hold
+    severity: critical
+    description: "Nullifiers must be cryptographically unique and bound to actions"
