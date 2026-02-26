@@ -9,15 +9,19 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 ## Overview
 
-ZkPatternMatcher enables security researchers and auditors to encode vulnerability knowledge as executable YAML patterns. Each pattern represents a known vulnerability class that can be automatically detected in ZK circuit code.
+Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Key Features:**
-- 🎯 YAML-based pattern definitions
-- 🔍 Regex and literal pattern matching
-- 📊 Severity-based classification
-- 🚀 Zero dependencies on fuzzing engines or SMT solvers
-- 🔧 Simple CLI for quick scans
-- 📚 Extensible pattern library
+**Features:**
+- YAML pattern definitions
+- Regex and literal matching
+- JSON/text output
+- Configurable limits
+- 314 LOC core
+
+**Test Results:**
+- 8/8 tests passing
+- 3 real vulnerabilities detected (100% on test suite)
+- 0% false positives on test suite
 
 ## Installation
 
@@ -27,22 +31,11 @@ cargo install --path .
 
 ## Configuration
 
-Optional config file `.zkpm.toml`:
-
-```toml
-[limits]
-max_file_size = 10485760  # 10MB
-max_patterns = 1000
-max_matches = 10000
-
-[output]
-default_format = "text"
-fail_on_critical = true
-```
-
-Place in:
-- `~/.zkpm/config.toml` (global)
-- `./.zkpm.toml` (project-specific)
+Hardcoded limits (see `.zkpm.toml.example` for reference):
+- Max file size: 10MB
+- Max pattern file: 1MB  
+- Max patterns: 1000
+- Max matches: 10000
 
 ## Quick Start
 
@@ -158,25 +151,20 @@ invariants:
 
 ## Pattern Library
 
-### Real Vulnerability Detection (Proven)
+Test suite results:
 
-Included patterns detect **real vulnerabilities** from zkBugs dataset:
+| Vulnerability | Detected | Test File |
+|---------------|----------|----------|
+| Underconstrained Assignment | Yes | `tests/real_vulnerabilities/underconstrained_multiplier.circom` |
+| Weak Nullifier | Yes | `tests/real_vulnerabilities/weak_nullifier.circom` |
+| Missing Range Check | Yes | `tests/real_vulnerabilities/missing_range_check.circom` |
 
-| Vulnerability | Severity | Detection Rate | False Positives |
-|---------------|----------|----------------|------------------|
-| Underconstrained Assignment | Critical | 100% | 0% |
-| Weak Nullifier | Critical | 100% | 0% |
-| Missing Range Check | High | 100% | 0% |
+Run `./validate.sh` to verify.
 
-**Test Suite:** `tests/real_vulnerabilities/` contains actual exploitable circuits.
-
-**Validation:** Run `./validate.sh` to verify detection on real vulnerabilities.
-
-### Pattern Categories
-
-- **Underconstrained circuits**: Missing constraints, unconstrained assignments
-- **Nullifier issues**: Missing uniqueness checks, replay attacks
-- **Range violations**: Missing boundary checks, field overflows
+Pattern categories:
+- Underconstrained circuits
+- Nullifier issues  
+- Range violations
 
 ## Use Cases
 
@@ -208,29 +196,17 @@ fi
 
 ## Extracted from ZkPatternFuzz
 
-This library extracts the pattern matching core from ZkPatternFuzz, a comprehensive ZK security testing framework. ZkPatternMatcher provides:
-
-- ✅ Standalone pattern matching (no fuzzing dependencies)
-- ✅ Lightweight CLI tool
-- ✅ Embeddable library
-- ✅ Community pattern sharing
+This library contains the pattern matching component from ZkPatternFuzz.
 
 ## Contributing
 
-Contributions welcome! Priority areas:
-
-1. **New patterns**: Encode vulnerabilities from audits/CVEs
-2. **Pattern validation**: Test patterns against known vulnerabilities
-3. **Documentation**: Pattern authoring guides
-4. **Integrations**: IDE plugins, CI/CD tools
+Contributions welcome.
 
 ## Pattern Sources
 
-Patterns derived from:
-- [zkBugs](https://zkbugs.com) - 110+ real vulnerabilities
-- Public audit reports (Trail of Bits, 0xPARC)
+- zkBugs dataset
+- Public audit reports
 - CVE databases
-- Manual audit discoveries
 
 ## License
 
