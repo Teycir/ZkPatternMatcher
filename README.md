@@ -54,12 +54,6 @@ Found 4 matches:
    Matched: <--
 ```
 
-### 2. Scan a Circuit
-
-```bash
-zkpm patterns/underconstrained.yaml examples/vulnerable.circom
-```
-
 ### 2. Validate a Pattern
 
 ```bash
