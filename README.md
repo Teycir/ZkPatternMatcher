@@ -19,10 +19,11 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - 314 LOC core
 
 **Test Results:**
-- 15/15 tests passing
+- 20/20 tests passing
 - 3 real vulnerabilities detected (100% on test suite)
 - 0% false positives on test suite
 - 7 CLI integration tests
+- 5 realistic workflow tests
 
 ## Installation
 

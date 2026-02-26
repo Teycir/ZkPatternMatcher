@@ -35,3 +35,6 @@ serde_json = "1.0"
 [[bin]]
 name = "zkpm"
 path = "src/bin/zkpm.rs"
+
+[dev-dependencies]
+tempfile = "3.8"
