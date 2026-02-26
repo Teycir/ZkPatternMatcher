@@ -1,4 +1,4 @@
-use crate::types::*;
+use pattern_types::*;
 use anyhow::{Context, Result};
 use regex::Regex;
 use std::collections::HashMap;

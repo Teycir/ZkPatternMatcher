@@ -1,0 +1,11 @@
+[package]
+name = "pattern-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core types for ZK pattern matching"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }

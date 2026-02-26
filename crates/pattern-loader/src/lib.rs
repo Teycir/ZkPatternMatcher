@@ -1,4 +1,4 @@
-use crate::types::PatternLibrary;
+use pattern_types::PatternLibrary;
 use anyhow::{Context, Result};
 use std::path::Path;
 

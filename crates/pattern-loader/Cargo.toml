@@ -1,0 +1,13 @@
+[package]
+name = "pattern-loader"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "YAML pattern loader for ZK vulnerability detection"
+
+[dependencies]
+pattern-types = { path = "../pattern-types" }
+serde_yaml = "0.9"
+anyhow = "1.0"

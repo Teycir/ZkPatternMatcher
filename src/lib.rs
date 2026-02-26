@@ -1,7 +1,3 @@
-pub mod types;
-pub mod matcher;
-pub mod loader;
-
-pub use types::*;
-pub use matcher::PatternMatcher;
-pub use loader::load_pattern_library;
+pub use pattern_types::*;
+pub use pattern_loader::{load_pattern_library, load_pattern_libraries};
+pub use pattern_matcher::PatternMatcher;

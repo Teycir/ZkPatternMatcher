@@ -1,0 +1,13 @@
+[package]
+name = "pattern-matcher"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pattern matching engine for ZK vulnerability detection"
+
+[dependencies]
+pattern-types = { path = "../pattern-types" }
+regex = "1.10"
+anyhow = "1.0"
