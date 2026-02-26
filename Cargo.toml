@@ -2,8 +2,8 @@
 name = "zk-pattern-matcher"
 version = "0.1.0"
 edition = "2021"
-authors = ["Teycir Ben Soltane <teycirbensoltane.tn>"]
-license = "MIT OR Apache-2.0"
+authors = ["Teycir Ben Soltane <teycir@pxdmail.net>"]
+license = "MIT"
 description = "A pattern matching library for Zero-Knowledge proof vulnerability detection"
 repository = "https://github.com/teycir/ZkPatternMatcher"
 keywords = ["zero-knowledge", "security", "vulnerability", "pattern-matching", "zk-proof"]

@@ -1,7 +1,7 @@
 # ZkPatternMatcher
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 [![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-success.svg)](tests/real_vulnerabilities/)
 
@@ -164,14 +164,12 @@ fi
 
 ## Extracted from ZkPatternFuzz
 
-This library extracts the pattern matching core from [ZkPatternFuzz](https://github.com/teycir/ZkPatternFuzz), a comprehensive ZK security testing framework. ZkPatternMatcher provides:
+This library extracts the pattern matching core from ZkPatternFuzz, a comprehensive ZK security testing framework. ZkPatternMatcher provides:
 
 - ✅ Standalone pattern matching (no fuzzing dependencies)
 - ✅ Lightweight CLI tool
 - ✅ Embeddable library
 - ✅ Community pattern sharing
-
-For full security testing (fuzzing, symbolic execution, differential testing), see ZkPatternFuzz.
 
 ## Contributing
 
@@ -192,21 +190,25 @@ Patterns derived from:
 
 ## License
 
-MIT OR Apache-2.0
+MIT - See [LICENSE.md](LICENSE.md) for details.
+
+## Contact
+
+**Teycir Ben Soltane**  
+Email: teycir@pxdmail.net
 
 ## Citation
 
 ```bibtex
-@software{zkpatternmatcher2024,
+@software{zkpatternmatcher2025,
   title={ZkPatternMatcher: Pattern-Based Vulnerability Detection for Zero-Knowledge Proofs},
   author={Ben Soltane, Teycir},
-  year={2024},
-  url={https://github.com/teycir/ZkPatternMatcher}
+  year={2025},
+  url={https://github.com/Teycir/ZkPatternMatcher}
 }
 ```
 
 ## Related Projects
 
-- **[ZkPatternFuzz](https://github.com/teycir/ZkPatternFuzz)** - Full security testing framework
 - **[Circomspect](https://github.com/trailofbits/circomspect)** - Circom static analyzer
 - **[Picus](https://github.com/zksecurity/picus)** - Noir static analyzer
