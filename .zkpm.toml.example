@@ -1,0 +1,28 @@
+# ZkPatternMatcher Configuration
+# Optional: Place in ~/.zkpm/config.toml or ./.zkpm.toml
+
+[limits]
+# Maximum file size to scan (bytes)
+max_file_size = 10485760  # 10MB
+
+# Maximum pattern file size (bytes)
+max_pattern_file_size = 1048576  # 1MB
+
+# Maximum patterns per library
+max_patterns = 1000
+
+# Maximum matches per scan
+max_matches = 10000
+
+# Maximum libraries in batch
+max_libraries = 100
+
+[output]
+# Default output format: "text" or "json"
+default_format = "text"
+
+# Show severity icons in text output
+show_icons = true
+
+# Exit with error code on high/critical findings
+fail_on_critical = true

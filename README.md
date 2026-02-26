@@ -25,6 +25,25 @@ ZkPatternMatcher enables security researchers and auditors to encode vulnerabili
 cargo install --path .
 ```
 
+## Configuration
+
+Optional config file `.zkpm.toml`:
+
+```toml
+[limits]
+max_file_size = 10485760  # 10MB
+max_patterns = 1000
+max_matches = 10000
+
+[output]
+default_format = "text"
+fail_on_critical = true
+```
+
+Place in:
+- `~/.zkpm/config.toml` (global)
+- `./.zkpm.toml` (project-specific)
+
 ## Quick Start
 
 ### Prove It Works: Run Validation Suite
