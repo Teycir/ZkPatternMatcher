@@ -1,0 +1,26 @@
+patterns:
+  - id: unconstrained_assignment
+    kind: regex
+    pattern: '<--'
+    message: 'Unconstrained assignment operator detected (potential underconstrained circuit)'
+    severity: high
+
+  - id: signal_declaration
+    kind: regex
+    pattern: 'signal\s+\w+'
+    message: 'Signal declaration - verify constraints'
+    severity: medium
+
+  - id: nullifier_without_uniqueness
+    kind: regex
+    pattern: 'nullifier'
+    message: 'Nullifier usage detected - verify uniqueness constraints'
+    severity: high
+
+invariants:
+  - name: output_determinism
+    invariant_type: constraint
+    relation: "output == output"
+    oracle: must_hold
+    severity: critical
+    description: "Circuit outputs must be deterministic for same inputs"
