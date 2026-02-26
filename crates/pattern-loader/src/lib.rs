@@ -3,6 +3,15 @@ use anyhow::{Context, Result};
 use std::path::Path;
 
 pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
+    const MAX_FILE_SIZE: u64 = 1024 * 1024; // 1MB limit for YAML
+    
+    let metadata = std::fs::metadata(path)
+        .with_context(|| format!("Failed to read metadata: {}", path.display()))?;
+    
+    if metadata.len() > MAX_FILE_SIZE {
+        anyhow::bail!("Pattern file too large: {} bytes (max {})", metadata.len(), MAX_FILE_SIZE);
+    }
+    
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read pattern file: {}", path.display()))?;
     
@@ -13,6 +22,12 @@ pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
 }
 
 pub fn load_pattern_libraries(paths: &[&Path]) -> Result<PatternLibrary> {
+    const MAX_LIBRARIES: usize = 100;
+    
+    if paths.len() > MAX_LIBRARIES {
+        anyhow::bail!("Too many pattern libraries: {} (max {})", paths.len(), MAX_LIBRARIES);
+    }
+    
     let mut all_patterns = Vec::new();
     let mut all_invariants = Vec::new();
     
