@@ -62,11 +62,6 @@
 - ⚠️ No examples/ directory with code samples
 - **Recommendation:** Add `cargo doc` examples
 
-### 5. **CI/CD**
-- ⚠️ No GitHub Actions workflow
-- ⚠️ No automated releases
-- **Recommendation:** Add `.github/workflows/ci.yml`
-
 ## 📊 Metrics
 
 | Metric | Value | Status |
@@ -85,9 +80,9 @@
 - ❌ None
 
 ### High Priority
-- ⚠️ Add GitHub Actions CI
 - ⚠️ Add rustdoc comments
 - ⚠️ Add unit tests per crate
+- ⚠️ Add JSON output format
 
 ### Medium Priority
 - ⚠️ Expand pattern library
@@ -102,15 +97,15 @@
 ## 🎯 Recommended Next Steps
 
 ### Phase 1: Quality (1-2 days)
-1. Add GitHub Actions CI workflow
-2. Add rustdoc comments to all public APIs
-3. Add unit tests to each crate (target 80% coverage)
+1. Add rustdoc comments to all public APIs
+2. Add unit tests to each crate (target 80% coverage)
+3. Add JSON output format
 
 ### Phase 2: Features (3-5 days)
 4. Add 10+ more CVE patterns from zkBugs
-5. Implement JSON output format
-6. Add severity filtering
-7. Add batch scanning
+5. Add severity filtering
+6. Add batch scanning
+7. Implement AST-based patterns
 
 ### Phase 3: Publishing (1 day)
 8. Publish to crates.io
