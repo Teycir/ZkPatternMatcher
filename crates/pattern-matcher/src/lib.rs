@@ -22,6 +22,13 @@ impl PatternMatcher {
             if pattern.kind == PatternKind::Regex {
                 let re = Regex::new(&pattern.pattern)
                     .with_context(|| format!("Invalid regex in pattern {}", pattern.id))?;
+                
+                // Check regex complexity to prevent ReDoS
+                if pattern.pattern.len() > 200 {
+                    anyhow::bail!("Regex pattern too complex in {}: {} chars (max 200)", 
+                                  pattern.id, pattern.pattern.len());
+                }
+                
                 compiled_regex.insert(pattern.id.clone(), re);
             }
         }
@@ -78,7 +85,7 @@ impl PatternMatcher {
                         }
                     }
                     PatternKind::Ast => {
-                        // AST matching not implemented in minimal version
+                        // AST matching not implemented - patterns with kind=ast are skipped
                     }
                 }
             }

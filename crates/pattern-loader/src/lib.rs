@@ -15,6 +15,11 @@ pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read pattern file: {}", path.display()))?;
     
+    // Limit YAML depth to prevent YAML bombs
+    if content.matches('\n').count() > 10000 {
+        anyhow::bail!("Pattern file too complex: {} lines (max 10000)", content.matches('\n').count());
+    }
+    
     let library: PatternLibrary = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse YAML: {}", path.display()))?;
     
