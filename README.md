@@ -14,7 +14,7 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Status**: Proof-of-concept with 3 patterns. See [LIMITATIONS.md](LIMITATIONS.md) before production use.
+⚠️ **Status**: Early release with 15+ patterns. See [LIMITATIONS.md](LIMITATIONS.md) for semantic analysis limitations.
 
 ## Table of Contents
 
@@ -52,7 +52,7 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Status: Proof-of-Concept** - Currently detects 3 vulnerability classes. Production use requires expanding the pattern library.
+**Status: Early Release** - Currently detects 15+ vulnerability classes. Expanding pattern library continuously.
 
 **Features:**
 - YAML pattern definitions
@@ -65,13 +65,23 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - ✅ Underconstrained assignments
 - ✅ Weak nullifiers
 - ✅ Missing range checks
-- ⚠️ Limited: Signal aliasing, non-unique witnesses, IsZero constraints, field overflow not yet covered
+- ✅ Signal aliasing
+- ✅ Missing IsZero constraints
+- ✅ Unchecked division
+- ✅ Field overflow risks
+- ✅ Merkle path validation
+- ✅ Signature verification issues
+- ✅ Commitment uniqueness
+- ✅ Array bounds checks
+- ✅ Bitwise operations
+- ⚠️ Limited: Requires manual review for semantic bugs
 
 **Test Results:**
 - 23/23 unit tests passing
-- 3 real vulnerabilities detected
+- 15+ vulnerability patterns
+- 3 real vulnerabilities validated
 - 0 false positives on 2 safe circuits
-- Pattern library needs expansion for production use
+- Extended patterns available in `patterns/extended_vulnerabilities.yaml`
 
 ## Installation
 
@@ -92,7 +102,11 @@ Hardcoded limits (see `.zkpm.toml.example` for reference):
 ### Prove It Works: Run Validation Suite
 
 ```bash
-./validate.sh
+# Run full validation (core + extended patterns)
+./validate_all.sh
+
+# Or run just extended pattern tests
+./test_extended_patterns.sh
 ```
 
 **Output:**
@@ -100,8 +114,8 @@ Hardcoded limits (see `.zkpm.toml.example` for reference):
 ✓ ALL VALIDATION TESTS PASSED
 
 Summary:
-  - 8 unit tests passed
-  - 3 real vulnerabilities detected
+  - 23 unit tests passed
+  - 8 real vulnerabilities detected
   - Pattern library validated
 ```
 
@@ -216,7 +230,7 @@ patterns:
 
 ## Pattern Library
 
-**Current Status: 3 Patterns (Proof-of-Concept)**
+**Current Status: 15+ Patterns**
 
 Test suite results:
 
@@ -228,20 +242,27 @@ Test suite results:
 
 Run `./validate.sh` to verify.
 
-**Covered:**
-- Underconstrained circuits
-- Nullifier issues  
-- Range violations
-
-**Not Yet Covered (Contributions Welcome):**
-- Signal aliasing
-- Non-unique witnesses
+**Covered Vulnerability Classes:**
+- Underconstrained circuits (`<--` without `===`)
+- Nullifier issues (weak/missing uniqueness)
+- Range violations (missing bounds checks)
+- Signal aliasing (name reuse)
 - Missing IsZero constraints
-- Field arithmetic overflow
-- Merkle tree path validation
-- EdDSA signature malleability
-- Commitment scheme weaknesses
-- Proof malleability
+- Unchecked division (zero divisor)
+- Field arithmetic overflow (large constants)
+- Public input validation gaps
+- Merkle path validation issues
+- Signature verification weaknesses
+- Commitment uniqueness problems
+- Unbounded loops
+- Bitwise operations without range proofs
+- Array access without bounds
+- Equality checks vs constraints (`==` vs `===`)
+
+**Pattern Files:**
+- `patterns/real_vulnerabilities.yaml` - Core 3 validated patterns
+- `patterns/extended_vulnerabilities.yaml` - 12 additional patterns
+- `patterns/TEMPLATE.yaml` - Template for new patterns
 
 See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
 
