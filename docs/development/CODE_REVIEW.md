@@ -1,6 +1,8 @@
 # Manual Code Review - ZkPatternMatcher
 
-**Review Date:** 2024-02-27  
+> Historical snapshot: this review targets `v0.1.0 (pre-release)` and is preserved for record-keeping. Current test counts and pattern coverage are tracked in `README.md` and `docs/reference/PATTERN_VALIDATION.md`.
+
+**Review Date:** 2026-02-27  
 **Reviewer:** Amazon Q  
 **Codebase Version:** v0.1.0 (pre-release)  
 **Total LOC:** ~314 core + ~200 tests + ~150 CLI
@@ -530,5 +532,5 @@ SUM:                           18            295             55           1264
 
 ---
 
-**Review Completed:** 2024-02-27  
+**Review Completed:** 2026-02-27  
 **Next Review:** After v0.1.0 release (address user feedback)

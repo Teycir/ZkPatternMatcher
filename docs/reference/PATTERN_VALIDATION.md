@@ -2,8 +2,8 @@
 
 ## Test Methodology
 
-- **Baseline Corpus:** 3 real vulnerable circuits + 2 safe circuits (`patterns/real_vulnerabilities.yaml`)
-- **Integration Matrix:** 16 vulnerable fixtures + 10 safe controls (`tests/real_world_validation_matrix_tests.rs`)
+- **Integration Matrix (Primary Gate):** 16 vulnerable fixtures + 10 safe controls (`tests/real_world_validation_matrix_tests.rs`)
+- **Baseline Library Regression Gate:** 3 vulnerable circuits + 2 safe circuits (`patterns/real_vulnerabilities.yaml`)
 - **Validation Gate:** Expected pattern IDs must be hit for each vulnerable fixture; safe controls must emit 0 high/critical findings
 - **Validation Date:** Baseline corpus snapshot (see git history for latest updates)
 
@@ -56,7 +56,7 @@
 
 1. **Prefer semantic mode for review scans:** Use `--semantic` to reduce comment/string-based noise
 2. **Context awareness:** Upgrade to AST-based matching for production-grade precision
-3. **Severity classification:** Mark heuristic patterns as "hints" not "detections"
+3. **Severity policy:** Keep syntax-only checks reviewer-facing (triage intent) unless reinforced by semantic/contextual evidence
 4. **Continuous validation:** Expand test corpus to 50+ circuits for stronger confidence bounds
 
 ## Regex Flags

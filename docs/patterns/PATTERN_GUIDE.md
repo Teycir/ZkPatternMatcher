@@ -59,9 +59,9 @@ patterns:
     severity: critical
 ```
 
-### Pattern with Invariant (NOT IMPLEMENTED)
+### Pattern with Invariant (Warning-Only Metadata)
 
-⚠️ **WARNING**: The invariant system is aspirational. This YAML will parse but invariants are not enforced. The CLI/matcher emit runtime warnings when invariants are present. See [LIMITATIONS.md](../reference/LIMITATIONS.md#invariant-system).
+⚠️ **WARNING**: Invariants are parsed and surfaced as runtime warnings, but not solver-enforced yet. Treat them as structured intent metadata. See [LIMITATIONS.md](../reference/LIMITATIONS.md#invariant-system).
 
 ```yaml
 patterns:

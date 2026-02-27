@@ -4,7 +4,7 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Pattern Coverage (Critical)
 
-**Current State**: Baseline validation covers 3 vulnerability patterns, and integration-test matrix coverage now validates extended packs across 16 vulnerable fixtures + 10 safe controls.
+**Current State**: Stable scanner/CLI with baseline validation (3 vulnerability patterns + 2 markers) plus integration-test matrix coverage across extended packs (16 vulnerable fixtures + 10 safe controls).
 
 **Validated Patterns** (in `real_vulnerabilities.yaml`):
 - ✅ Underconstrained assignments (`<--` operator)
@@ -22,16 +22,14 @@ This document transparently lists current limitations and areas for improvement.
 - ✅ Public input validation checks (`public_input_validation.yaml`)
 
 **Still Missing Coverage**:
-- Field arithmetic overflow
-- Merkle tree path validation issues
-- EdDSA signature malleability
-- Commitment scheme weaknesses
-- Proof malleability attacks
-- Constraint system rank deficiency
-- Trusted setup vulnerabilities
-- Non-unique witness generation
+- Broader arithmetic edge cases (overflow/underflow families, modular edge behavior)
+- Deeper Merkle/state-machine properties beyond current selector/root checks
+- Signature-specific classes (EdDSA/ECDSA misuse variants)
+- Proof-system and setup-level classes (trusted setup, proof malleability)
+- Formal constraint-system rank/satisfiability analysis
+- Non-unique witness generation proofs
 
-**Impact**: Coverage is significantly stronger than baseline-only validation, but still relies on targeted fixtures rather than broad ecosystem benchmarking.
+**Impact**: Coverage is materially stronger than baseline-only validation, but still relies on targeted fixtures instead of broad ecosystem benchmarking.
 
 **Mitigation**: Actively seeking pattern contributions. See [PATTERN_GUIDE.md](../patterns/PATTERN_GUIDE.md).
 
@@ -61,9 +59,9 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Invariant System
 
-**Current State**: YAML schema exists, but invariant enforcement is not implemented.
+**Current State**: YAML schema exists; invariant blocks are parsed and surfaced via runtime warnings, but not solver-enforced.
 
-**Status**: The `invariants` section in YAML patterns is parsed but not enforced. The CLI and matcher emit warnings when invariants are present.
+**Status**: The `invariants` section in YAML patterns is warning-only metadata today. The CLI and matcher emit warnings when invariants are present.
 
 **Impact**: Cannot verify constraint system properties or mathematical invariants.
 
@@ -135,12 +133,12 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Roadmap Priority
 
-1. **Critical**: Expand pattern library (10+ patterns minimum)
-2. **High**: Add live CI with real badge
-3. **High**: AST-based pattern matching
-4. **Medium**: Implement invariant checking
-5. **Medium**: Multi-backend support (Noir, Halo2)
-6. **Low**: Performance optimization
+1. **Critical**: Expand validation corpus breadth (50+ vulnerable and 50+ safe fixtures)
+2. **High**: Deepen semantic checks toward parser/AST-backed analysis
+3. **High**: Implement solver-backed invariant enforcement
+4. **Medium**: Add multi-backend support (Noir, Halo2, Cairo)
+5. **Medium**: Add benchmark/performance regression jobs in CI
+6. **Low**: Further throughput optimizations (parallel and incremental scanning)
 
 ## Contributing
 

@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2024-02-27
+### Added
+- Real-world validation matrix coverage across extended packs (`16 vulnerable fixtures + 10 safe controls`)
+- Additional pattern packs for array bounds, equality misuse, Merkle path integrity, commitment soundness, and public input validation
+- Optional semantic scan mode (`--semantic`) for cross-line checks
+
+### Changed
+- Documentation updated to reflect stable scanner/CLI status and current matrix-validated coverage
+- Extended pattern pack docs updated from "unvalidated" to targeted matrix-validated status
+
+## [0.1.0] - 2026-02-27
 
 ### Added
 - Initial release of ZkPatternMatcher

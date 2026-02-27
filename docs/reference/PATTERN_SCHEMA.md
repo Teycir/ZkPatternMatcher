@@ -73,7 +73,7 @@ invariants:
 
 ## Limitations
 
-### Current (v0.1.0)
+### Current
 - **Syntax-first default**: Pattern matching is line-by-line and syntax-based by default
 - **Limited semantic mode**: `--semantic` adds heuristic cross-line checks, not full AST/constraint analysis
 - **Regex-only scans can match comments/strings**: use semantic mode for higher-confidence findings

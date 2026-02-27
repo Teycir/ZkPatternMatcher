@@ -13,7 +13,7 @@ Complete documentation for ZkPatternMatcher organized by category.
 4. **[Pattern Writing Guide](patterns/PATTERN_GUIDE.md)** - How to write and contribute patterns
 5. **[Pattern Confidence Levels](patterns/PATTERN_CONFIDENCE.md)** - Understanding pattern validation status
 6. **[Real Vulnerability Sources](patterns/REAL_VULN_SOURCES.md)** - Where to find real vulnerable circuits
-7. **[Extended Patterns](../patterns/EXTENDED_PATTERNS.md)** - Experimental pattern library
+7. **[Extended Patterns](../patterns/EXTENDED_PATTERNS.md)** - Extended pattern packs and matrix validation status
 
 ## 📋 Reference Documentation
 
