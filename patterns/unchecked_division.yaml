@@ -1,0 +1,44 @@
+patterns:
+  # Pattern: Division operator in expressions
+  # Detects: a / b (Circom modular inverse multiplication)
+  - id: division_operator_detected
+    kind: regex
+    pattern: '\w+\s*/\s*\w+'
+    message: >
+      HIGH: Division operator detected. Circom division is modular inverse
+      multiplication (a / b = a * inverse(b)). If the divisor can be zero,
+      the circuit becomes unsatisfiable or allows a malicious prover to
+      submit an unprovable statement. Confirm a nonzero constraint exists
+      for the divisor using IsZero: IsZero()(divisor).out === 0.
+    severity: high
+
+  # Pattern: Signal used as denominator in constraint
+  # Detects: <== expr / signal or === expr / signal
+  - id: signal_as_denominator
+    kind: regex
+    pattern: '(?:<==|===)\s*[\w\s\+\-\*\(\)]*\/\s*\w+'
+    message: >
+      HIGH: A signal appears as a denominator in a constrained expression.
+      Verify the signal is provably nonzero before this point in the circuit.
+      Missing nonzero check enables division-by-zero witness attacks.
+      Safe pattern: component nz = IsZero(); nz.in <== divisor; nz.out === 0;
+    severity: high
+
+  # Pattern: Inverse function call (explicit modular inverse)
+  # Detects: inverse(signal) or signal.inverse()
+  - id: explicit_inverse_call
+    kind: regex
+    pattern: 'inverse\s*\(\s*\w+\s*\)'
+    message: >
+      HIGH: Explicit inverse() function call detected. Ensure the argument
+      is constrained to be nonzero. An inverse of zero is undefined and
+      will cause proof generation to fail or produce invalid proofs.
+    severity: high
+
+invariants:
+  - name: divisor_nonzero
+    invariant_type: constraint
+    relation: "divisor_has_nonzero_constraint"
+    oracle: must_hold
+    severity: high
+    description: "Every signal used as a divisor must have a provable nonzero constraint"

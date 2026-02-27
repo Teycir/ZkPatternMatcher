@@ -47,20 +47,40 @@ This document catalogs all regex patterns currently implemented in ZkPatternMatc
 **Purpose:** Detect incomplete circuit implementations  
 **Severity:** High
 
-## Planned Patterns (Not Yet Implemented)
+## Planned Patterns (Now Implemented - Awaiting Validation)
 
-See [LIMITATIONS.md](LIMITATIONS.md#pattern-coverage-critical) for full list of missing coverage:
+The following patterns have been implemented but not yet validated against real vulnerable circuits:
 
-- Signal aliasing (name reuse)
-- Missing IsZero constraint checks
-- Unchecked division (zero divisor)
-- Field arithmetic overflow
-- Merkle path validation issues
-- Signature verification weaknesses
-- Commitment uniqueness problems
-- Array bounds checks
-- Bitwise operations without range proofs
-- Equality checks vs constraints (`==` vs `===`)
+### Signal Aliasing (`patterns/signal_aliasing.yaml`)
+- Component input aliasing detection
+- Intermediate array unconstrained assignments
+- Status: ⚠️ Implemented, needs validation
+
+### Missing IsZero (`patterns/missing_iszero.yaml`)
+- Unconstrained boolean selector detection
+- Binary constraint pattern recognition
+- IsZero component usage tracking
+- Status: ⚠️ Implemented, needs validation
+
+### Unchecked Division (`patterns/unchecked_division.yaml`)
+- Division operator detection
+- Signal as denominator detection
+- Explicit inverse() call detection
+- Status: ⚠️ Implemented, needs validation
+
+### Array Bounds (`patterns/array_bounds.yaml`)
+- Signal-indexed array access detection
+- Signal-dependent loop bound detection
+- LessThan component usage tracking
+- Status: ⚠️ Implemented, needs validation
+
+### Equality Check (`patterns/equality_check.yaml`)
+- Comparison operator (==) vs constraint (===) detection
+- Assignment operator (=) misuse detection
+- Separate assignment and constraint pattern detection
+- Status: ⚠️ Implemented, needs validation
+
+See individual pattern files in `patterns/` directory for detailed documentation.
 
 ## Regex Design Principles
 

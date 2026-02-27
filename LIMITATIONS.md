@@ -4,12 +4,21 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Pattern Coverage (Critical)
 
-**Current State**: 3 vulnerability patterns (proof-of-concept)
+**Current State**: 3 validated patterns + 5 newly implemented (unvalidated)
 
-**Missing Coverage**:
-- Signal aliasing attacks
-- Non-unique witness generation
-- Missing IsZero constraint checks
+**Validated Patterns** (in `real_vulnerabilities.yaml`):
+- ✅ Underconstrained assignments (`<--` operator)
+- ✅ Weak nullifier assignments
+- ✅ Missing range checks (via comment detection)
+
+**Newly Implemented - Awaiting Validation** (separate YAML files):
+- ⚠️ Signal aliasing attacks (`signal_aliasing.yaml`)
+- ⚠️ Missing IsZero constraint checks (`missing_iszero.yaml`)
+- ⚠️ Unchecked division (`unchecked_division.yaml`)
+- ⚠️ Array bounds checks (`array_bounds.yaml`)
+- ⚠️ Equality operator misuse (`equality_check.yaml`)
+
+**Still Missing Coverage**:
 - Field arithmetic overflow
 - Merkle tree path validation issues
 - EdDSA signature malleability
@@ -17,8 +26,9 @@ This document transparently lists current limitations and areas for improvement.
 - Proof malleability attacks
 - Constraint system rank deficiency
 - Trusted setup vulnerabilities
+- Non-unique witness generation
 
-**Impact**: Tool will miss many real-world vulnerabilities. Not production-ready without pattern library expansion.
+**Impact**: New patterns expand coverage significantly but require validation against real vulnerable circuits before production use.
 
 **Mitigation**: Actively seeking pattern contributions. See [PATTERN_GUIDE.md](PATTERN_GUIDE.md).
 

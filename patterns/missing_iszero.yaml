@@ -1,0 +1,41 @@
+patterns:
+  # Pattern: Mux-style selector without binary constraint
+  # Detects: out <== b * x + (1 - b) * y (common mux pattern)
+  - id: unconstrained_boolean_selector
+    kind: regex
+    pattern: '<==\s*\w+\s*\*\s*\w+\s*\+\s*\(\s*1\s*-\s*\w+\s*\)\s*\*\s*\w+'
+    message: >
+      MEDIUM: Mux-style selector pattern detected (b * x + (1-b) * y).
+      Verify the selector signal is binary-constrained to {0,1}. Without
+      IsZero or Num2Bits constraining the selector, a prover can supply
+      non-binary values (e.g., b=2) to forge outputs: out = 2x - y.
+    severity: medium
+
+  # Pattern: Conditional signal assignment pattern
+  # Detects: signal * (signal - 1) pattern (binary constraint idiom)
+  - id: missing_binary_constraint
+    kind: regex
+    pattern: '\w+\s*\*\s*\(\s*\w+\s*-\s*1\s*\)'
+    message: >
+      INFO: Binary constraint pattern detected. This is the correct idiom
+      for constraining a signal to {0,1}: signal * (signal - 1) === 0.
+      Verify this constraint exists for all boolean selector signals.
+    severity: info
+
+  # Pattern: IsZero component usage (positive detection)
+  - id: iszero_component_present
+    kind: regex
+    pattern: 'component\s+\w+\s*=\s*IsZero\s*\('
+    message: >
+      INFO: IsZero component detected. This is the correct pattern for
+      equality checks in Circom. Ensure the component output is properly
+      constrained: component.out === 1 (for equality) or === 0 (for inequality).
+    severity: info
+
+invariants:
+  - name: equality_uses_iszero
+    invariant_type: property
+    relation: "equality_check_uses_iszero_template"
+    oracle: should_hold
+    severity: high
+    description: "Equality comparisons should use the IsZero template for soundness"

@@ -1,0 +1,45 @@
+patterns:
+  # Pattern: Array indexed by non-literal (signal or variable)
+  # Detects: arr[signal] where signal is not a compile-time constant
+  - id: signal_indexed_array_access
+    kind: regex
+    pattern: '\w+\[(?!\s*\d+\s*\])\s*\w+\s*\]'
+    message: >
+      MEDIUM: Array accessed with a non-literal index. If the index is a
+      signal (runtime witness value), there is no automatic bounds check.
+      A prover supplying an out-of-bounds index may read unintended signal
+      values or make the circuit trivially satisfiable. Add explicit bounds
+      constraint: component lt = LessThan(bits); lt.in[0] <== index;
+      lt.in[1] <== ARRAY_SIZE; lt.out === 1;
+    severity: medium
+
+  # Pattern: For-loop with non-constant bound
+  # Detects: for (var i = 0; i < signal; i++)
+  - id: signal_dependent_loop_bound
+    kind: regex
+    pattern: 'for\s*\(\s*var\s+\w+\s*=\s*\d+\s*;\s*\w+\s*<\s*(?!\d+)[a-zA-Z_]\w*\s*;'
+    message: >
+      HIGH: Loop bound depends on a non-literal value. If the loop bound is
+      a signal or template parameter derived from a signal, the number of
+      constraints generated at compile time may not match runtime intent.
+      Circom unrolls all loops at compile time - ensure the bound is a
+      compile-time constant or properly validated template parameter.
+    severity: high
+
+  # Pattern: LessThan component usage (positive detection)
+  - id: lessthan_component_present
+    kind: regex
+    pattern: 'component\s+\w+\s*=\s*LessThan\s*\('
+    message: >
+      INFO: LessThan component detected. This is the correct pattern for
+      bounds checking in Circom. Ensure it's used to validate array indices:
+      lt.in[0] <== index; lt.in[1] <== ARRAY_SIZE; lt.out === 1;
+    severity: info
+
+invariants:
+  - name: array_index_bounded
+    invariant_type: constraint
+    relation: "index_lt_array_size"
+    oracle: must_hold
+    severity: high
+    description: "All signal-indexed array accesses must have an accompanying LessThan bounds constraint"

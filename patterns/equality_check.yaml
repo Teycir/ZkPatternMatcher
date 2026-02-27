@@ -1,0 +1,76 @@
+patterns:
+  # Pattern: Double equals (==) instead of constraint (===)
+  # Detects: signal == value (comparison, not constraint)
+  - id: comparison_instead_of_constraint
+    kind: regex
+    pattern: '\w+\s*==\s*\w+\s*;'
+    message: >
+      CRITICAL: Double equals (==) detected. In Circom, == is a comparison
+      operator that returns a boolean, NOT a constraint. Use === for
+      constraints. The pattern 'signal == value;' does not add any constraint
+      to the circuit - it's a no-op that allows the prover to set signal to
+      any value. Replace with: signal === value;
+    severity: critical
+
+  # Pattern: Assignment operator (=) in circuit context
+  # Detects: signal = value (variable assignment, not circuit constraint)
+  - id: assignment_in_circuit_context
+    kind: regex
+    pattern: 'signal\s+\w+\s*=\s*[^=]'
+    message: >
+      HIGH: Single equals (=) after signal keyword. This is variable
+      assignment syntax, not a circuit constraint. For signals, use:
+      <== (constrained assignment), <-- (unconstrained assignment), or
+      === (constraint only). The = operator does not create constraints.
+    severity: high
+
+  # Pattern: Unconstrained assignment followed by separate constraint
+  # Detects: x <-- f(); x === g(); (potential logic error if f != g)
+  - id: separate_assignment_and_constraint
+    kind: regex
+    pattern: '\w+\s*<--\s*\w+[\(\[][\w\s,\)\]]*;[\s\n]*\w+\s*===\s*\w+[\(\[]'
+    message: >
+      MEDIUM: Unconstrained assignment (<--) followed by separate constraint
+      (===). This pattern is valid when computing an intermediate value then
+      constraining it, but verify the constraint expression matches the
+      assignment logic. If they differ, the prover can exploit the gap.
+      Consider using <== for combined assignment+constraint when possible.
+    severity: medium
+
+  # Pattern: Orphaned unconstrained assignment (no following constraint)
+  # Detects: <-- without === within reasonable distance
+  - id: orphaned_unconstrained_assignment
+    kind: regex
+    pattern: '<--\s*[^;]+;\s*(?![\s\S]{0,200}===)'
+    message: >
+      HIGH: Unconstrained assignment (<--) with no following === constraint
+      detected within 200 characters. The signal is assigned a witness value
+      but never constrained - the prover can substitute any value.
+      Safe pattern: out <-- computation(); out * out === input;
+      Dangerous pattern: out <-- computation(); (no constraint follows)
+    severity: high
+
+  # Pattern: Correct constraint operator usage (positive detection)
+  - id: correct_constraint_operator
+    kind: regex
+    pattern: '\w+\s*<==\s*\w+'
+    message: >
+      INFO: Constrained assignment operator (<==) detected. This is the
+      correct pattern for assigning and constraining a signal simultaneously.
+      Equivalent to: signal <-- value; signal === value;
+    severity: info
+
+invariants:
+  - name: no_comparison_operators
+    invariant_type: syntax
+    relation: "no_double_equals_in_constraints"
+    oracle: must_hold
+    severity: critical
+    description: "Circuit constraints must use === not == for equality"
+
+  - name: every_hint_is_constrained
+    invariant_type: constraint
+    relation: "lhs_of_hint_has_constraint"
+    oracle: must_hold
+    severity: high
+    description: "Every signal assigned via <-- must have a corresponding === constraint"

@@ -268,10 +268,15 @@ Run `./validate.sh` to verify.
 
 **Pattern Files:**
 - `patterns/real_vulnerabilities.yaml` - 3 validated patterns + 2 developer markers
+- `patterns/signal_aliasing.yaml` - ⚠️ NEW: Signal aliasing detection (unvalidated)
+- `patterns/missing_iszero.yaml` - ⚠️ NEW: IsZero component checks (unvalidated)
+- `patterns/unchecked_division.yaml` - ⚠️ NEW: Division by zero detection (unvalidated)
+- `patterns/array_bounds.yaml` - ⚠️ NEW: Array bounds checking (unvalidated)
+- `patterns/equality_check.yaml` - ⚠️ NEW: Equality operator misuse (unvalidated)
 - `patterns/extended_vulnerabilities.yaml` - Experimental patterns (not validated)
 - `patterns/TEMPLATE.yaml` - Template for new patterns
 
-⚠️ Only `real_vulnerabilities.yaml` is validated against real test circuits.
+⚠️ Only `real_vulnerabilities.yaml` is validated against real test circuits. New patterns in separate files are awaiting validation. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
 
 See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
 
