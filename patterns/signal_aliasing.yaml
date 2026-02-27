@@ -1,16 +1,18 @@
 patterns:
-  # Pattern: Component port assignment (info-level anchor)
-  # Used to flag lines for manual cross-reference
+  # Pattern 1: Any component port assignment using <==
   - id: component_port_assignment
     kind: regex
     pattern: '^\s*\w+\.\w+\s*<==\s*(\w+)\s*;'
     message: >
-      INFO: Component port assignment detected. Manually verify that the same
-      signal is not wired to multiple independent component inputs within this
-      template. Signal aliasing collapses proof degrees of freedom.
+      INFO: Component port assignment detected. Cross-reference all
+      component.<port> <== <signal> lines in this template. If the same
+      signal name appears on the RHS of two different port assignments,
+      that is a signal-aliasing vulnerability (collapses proof degrees
+      of freedom). Automated cross-line detection requires the two-pass
+      semantic scan — flag for manual review.
     severity: info
 
-  # Pattern: Intermediate array unconstrained assignment
+  # Pattern 2: Intermediate array unconstrained assignment
   - id: intermediate_array_unconstrained
     kind: regex
     pattern: '\bintermediate\s*\[\s*\d+\s*\]\s*<--'
@@ -20,6 +22,19 @@ patterns:
       prevent path forgery. Ensure a corresponding constraint equation exists:
         intermediate[i] === left_child * selector + right_child * (1 - selector);
     severity: medium
+
+  # Pattern 3: Detect same signal name used in two consecutive component assignments
+  # NOTE: Requires fancy-regex for backreference support - marked as 'ast' to skip
+  - id: same_signal_dual_port_inline
+    kind: ast   # requires fancy-regex; skipped until engine upgrade
+    pattern: '\w+\.\w+\s*<==\s*(\w+)\s*;\s*\w+\.\w+\s*<==\s*\1\s*;'
+    message: >
+      HIGH: Same signal wired to two component ports on one line.
+      Verify this aliasing is intentional. If these ports represent
+      independent witnesses, aliasing collapses the circuit's degrees
+      of freedom and may allow a prover to satisfy constraints with
+      forged values.
+    severity: high
 
 invariants:
   - name: no_signal_aliasing

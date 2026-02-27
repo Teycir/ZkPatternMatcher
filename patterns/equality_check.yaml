@@ -25,7 +25,6 @@ patterns:
     severity: high
 
   # Pattern: Bare hint assignment (simplified orphaned detection)
-  # Detects: <-- on a line with no === on same line
   - id: bare_hint_assignment
     kind: regex
     pattern: '^\s*\w[\w\[\]]*\s*<--\s*[^;=]+;\s*$'
@@ -37,6 +36,16 @@ patterns:
       Safe pattern:  out <-- compute(x); out * out === x;
       Danger signal: out <-- compute(x);   ← this fires here
     severity: high
+
+  # Pattern: Hint with inline constraint (safe pattern - info only)
+  - id: hint_with_inline_constraint
+    kind: regex
+    pattern: '<--.*==='
+    message: >
+      INFO: Hint assignment (<--) and constraint (===) appear on the same line.
+      This is a common safe pattern. Verify the constraint expression matches
+      the computation on the RHS of <--.
+    severity: info
 
   # Pattern: Correct constraint operator usage (positive detection)
   - id: correct_constraint_operator
