@@ -1,9 +1,9 @@
 //! Pattern matching engine for ZK circuit vulnerability detection.
 
 use anyhow::{Context, Result};
+use fancy_regex::Regex as FancyRegex;
 use pattern_types::*;
 use regex::Regex;
-use fancy_regex::Regex as FancyRegex;
 use std::collections::HashMap;
 
 pub mod semantic;
@@ -68,8 +68,9 @@ impl PatternMatcher {
                     compiled_regex.insert(pattern.id.clone(), re);
                 }
                 PatternKind::FancyRegex => {
-                    let re = FancyRegex::new(&pattern.pattern)
-                        .with_context(|| format!("Invalid fancy-regex in pattern {}", pattern.id))?;
+                    let re = FancyRegex::new(&pattern.pattern).with_context(|| {
+                        format!("Invalid fancy-regex in pattern {}", pattern.id)
+                    })?;
 
                     if pattern.pattern.len() > 200 {
                         anyhow::bail!(
