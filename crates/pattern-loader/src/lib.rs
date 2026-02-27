@@ -1,7 +1,29 @@
+//! YAML pattern library loader with security limits.
+
 use pattern_types::PatternLibrary;
 use anyhow::{Context, Result};
 use std::path::Path;
 
+/// Loads a pattern library from a YAML file.
+///
+/// # Security Limits
+/// - Max file size: 1MB
+/// - Max lines: 10,000
+///
+/// # Errors
+/// Returns an error if:
+/// - File exceeds size/complexity limits
+/// - File cannot be read
+/// - YAML is malformed
+///
+/// # Example
+/// ```no_run
+/// use pattern_loader::load_pattern_library;
+/// use std::path::Path;
+///
+/// let lib = load_pattern_library(Path::new("patterns/test.yaml"))?;
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
     const MAX_FILE_SIZE: u64 = 1024 * 1024; // 1MB limit for YAML
     
@@ -26,6 +48,13 @@ pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
     Ok(library)
 }
 
+/// Loads and merges multiple pattern libraries.
+///
+/// # Limits
+/// - Max libraries: 100
+///
+/// # Errors
+/// Returns an error if any library fails to load or limit is exceeded.
 pub fn load_pattern_libraries(paths: &[&Path]) -> Result<PatternLibrary> {
     const MAX_LIBRARIES: usize = 100;
     

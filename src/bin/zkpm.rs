@@ -3,6 +3,8 @@ use serde::Serialize;
 use std::path::PathBuf;
 use zk_pattern_matcher::{load_pattern_library, PatternMatcher, PatternMatch, Severity};
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Serialize)]
 struct JsonOutput {
     matches: Vec<PatternMatch>,
@@ -42,14 +44,37 @@ fn severity_icon(severity: &Severity) -> &'static str {
     }
 }
 
+fn print_usage() {
+    eprintln!("zkpm {} - ZK Pattern Matcher", VERSION);
+    eprintln!();
+    eprintln!("USAGE:");
+    eprintln!("    zkpm [OPTIONS] <pattern.yaml> <target_file>");
+    eprintln!("    zkpm validate <pattern.yaml>");
+    eprintln!("    zkpm list <pattern.yaml>");
+    eprintln!();
+    eprintln!("OPTIONS:");
+    eprintln!("    --format <json|text>    Output format (default: text)");
+    eprintln!("    -h, --help              Print help information");
+    eprintln!("    -V, --version           Print version information");
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     
     if args.len() < 2 {
-        eprintln!("Usage: zkpm [--format json|text] <pattern.yaml> <target_file>");
-        eprintln!("       zkpm validate <pattern.yaml>");
-        eprintln!("       zkpm list <pattern.yaml>");
+        print_usage();
         std::process::exit(1);
+    }
+    
+    // Handle --help and --version
+    if args[1] == "--help" || args[1] == "-h" {
+        print_usage();
+        return Ok(());
+    }
+    
+    if args[1] == "--version" || args[1] == "-V" {
+        println!("zkpm {}", VERSION);
+        return Ok(());
     }
     
     let mut format = "text";

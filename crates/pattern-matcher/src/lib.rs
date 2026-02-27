@@ -1,14 +1,38 @@
+//! Pattern matching engine for ZK circuit vulnerability detection.
+
 use pattern_types::*;
 use anyhow::{Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 
+/// Pattern matcher with compiled regex cache.
 pub struct PatternMatcher {
     patterns: Vec<Pattern>,
     compiled_regex: HashMap<String, Regex>,
 }
 
 impl PatternMatcher {
+    /// Creates a new pattern matcher from a pattern library.
+    ///
+    /// # Limits
+    /// - Max patterns: 1,000
+    /// - Max regex length: 200 chars
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Pattern limit exceeded
+    /// - Regex compilation fails
+    /// - Regex too complex (>200 chars)
+    ///
+    /// # Example
+    /// ```no_run
+    /// use pattern_matcher::PatternMatcher;
+    /// use pattern_types::*;
+    ///
+    /// let library = PatternLibrary { patterns: vec![], invariants: vec![] };
+    /// let matcher = PatternMatcher::new(library)?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn new(library: PatternLibrary) -> Result<Self> {
         const MAX_PATTERNS: usize = 1000;
         
@@ -39,6 +63,13 @@ impl PatternMatcher {
         })
     }
     
+    /// Scans text content for pattern matches.
+    ///
+    /// # Limits
+    /// - Max matches: 10,000 (stops early if exceeded)
+    ///
+    /// # Returns
+    /// Vector of pattern matches with locations.
     pub fn scan_text(&self, text: &str) -> Vec<PatternMatch> {
         const MAX_MATCHES: usize = 10000;
         let mut matches = Vec::new();
@@ -94,6 +125,26 @@ impl PatternMatcher {
         matches
     }
     
+    /// Scans a file for pattern matches.
+    ///
+    /// # Limits
+    /// - Max file size: 10MB
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - File exceeds size limit
+    /// - File cannot be read
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use pattern_matcher::PatternMatcher;
+    /// # use pattern_types::*;
+    /// # use std::path::Path;
+    /// # let library = PatternLibrary { patterns: vec![], invariants: vec![] };
+    /// # let matcher = PatternMatcher::new(library)?;
+    /// let matches = matcher.scan_file(Path::new("circuit.circom"))?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn scan_file(&self, path: &std::path::Path) -> Result<Vec<PatternMatch>> {
         const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB limit
         
