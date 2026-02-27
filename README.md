@@ -306,5 +306,7 @@ Website: https://teycirbensoltane.tn
 
 ## Related Projects
 
-- **[Circomspect](https://github.com/trailofbits/circomspect)** - Circom static analyzer
-- **[Picus](https://github.com/zksecurity/picus)** - Noir static analyzer
+- **[HoneypotScan](https://github.com/Teycir/honeypotscan)** - Smart contract honeypot detection
+- **[Sanctum](https://github.com/Teycir/Sanctum)** - Privacy-focused security tools
+- **[GhostChat](https://github.com/Teycir/GhostChat)** - Secure messaging platform
+- **[Timeseal](https://github.com/Teycir/Timeseal)** - Timestamping and verification
