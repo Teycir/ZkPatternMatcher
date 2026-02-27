@@ -8,6 +8,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 
+⭐ **If you find this useful, please star the repo!** ⭐
+
 </div>
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
