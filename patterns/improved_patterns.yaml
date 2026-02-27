@@ -1,0 +1,64 @@
+patterns:
+  # Pattern 1: Unconstrained assignment with context (improved from bare '<--')
+  - id: unconstrained_assignment
+    kind: regex
+    pattern: '\b\w+\s*<--\s*\w+'
+    message: 'CRITICAL: Unconstrained assignment operator (<--) detected. This creates a witness assignment without a constraint, allowing prover to forge values.'
+    severity: critical
+
+  # Pattern 2: Nullifier with unconstrained assignment (context-aware)
+  - id: weak_nullifier_assignment
+    kind: regex
+    pattern: 'signal\s+\w*nullifier\w*\s*<--'
+    message: 'CRITICAL: Nullifier using unconstrained assignment. Enables replay/double-spend attacks.'
+    severity: critical
+
+  # Pattern 3: Missing constraint documentation markers
+  - id: missing_constraint_marker
+    kind: regex
+    pattern: '(MISSING:|TODO:|FIXME:)\s*constraint'
+    message: 'Documentation indicates missing constraint implementation'
+    severity: high
+
+  # Pattern 4: Known vulnerability markers
+  - id: vulnerability_marker
+    kind: regex
+    pattern: '(BUG:|VULN:|EXPLOIT:)'
+    message: 'Known vulnerability marker found in code'
+    severity: critical
+
+  # Pattern 5: Missing range check documentation
+  - id: missing_range_check_doc
+    kind: literal
+    pattern: 'No constraint that value is in valid range'
+    message: 'Missing range constraint allows field overflow attacks'
+    severity: high
+
+  # Pattern 6: Unconstrained signal declaration (heuristic)
+  - id: signal_without_constraint
+    kind: regex
+    pattern: 'signal\s+\w+\s*<--\s*[^;]+;\s*$'
+    message: 'Signal assigned without immediate constraint (heuristic - may be false positive)'
+    severity: medium
+
+invariants:
+  - name: constrained_outputs
+    invariant_type: constraint
+    relation: "output_constraint_exists"
+    oracle: must_hold
+    severity: critical
+    description: "All outputs must be properly constrained to inputs"
+
+  - name: nullifier_uniqueness
+    invariant_type: constraint
+    relation: "nullifier_unique_per_action"
+    oracle: must_hold
+    severity: critical
+    description: "Nullifiers must be cryptographically unique and bound to actions"
+
+  - name: range_bounds
+    invariant_type: constraint
+    relation: "value_within_field_bounds"
+    oracle: must_hold
+    severity: high
+    description: "All numeric values must be constrained to valid field ranges"
