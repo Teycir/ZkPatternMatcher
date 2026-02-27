@@ -1,37 +1,26 @@
 use anyhow::Result;
-use serde::Serialize;
 use std::path::PathBuf;
-use zk_pattern_matcher::{load_pattern_library, load_config, PatternMatcher, PatternMatch, Severity};
+use zk_pattern_matcher::{
+    load_pattern_library, load_config, load_ignore_patterns,
+    Scanner, OutputFormatter, OutputFormat, Severity
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Serialize)]
-struct JsonOutput {
-    matches: Vec<PatternMatch>,
-    summary: Summary,
-}
-
-#[derive(Serialize)]
-struct Summary {
-    total: usize,
-    critical: usize,
-    high: usize,
-    medium: usize,
-    low: usize,
-    info: usize,
-}
-
-impl Summary {
-    fn from_matches(matches: &[PatternMatch]) -> Self {
-        Self {
-            total: matches.len(),
-            critical: matches.iter().filter(|m| m.severity == Severity::Critical).count(),
-            high: matches.iter().filter(|m| m.severity == Severity::High).count(),
-            medium: matches.iter().filter(|m| m.severity == Severity::Medium).count(),
-            low: matches.iter().filter(|m| m.severity == Severity::Low).count(),
-            info: matches.iter().filter(|m| m.severity == Severity::Info).count(),
-        }
-    }
+fn print_usage() {
+    eprintln!("zkpm {} - ZK Pattern Matcher", VERSION);
+    eprintln!();
+    eprintln!("USAGE:");
+    eprintln!("    zkpm [OPTIONS] <pattern.yaml> <target>");
+    eprintln!("    zkpm validate <pattern.yaml>");
+    eprintln!("    zkpm list <pattern.yaml>");
+    eprintln!();
+    eprintln!("OPTIONS:");
+    eprintln!("    --format <json|text|sarif>  Output format (default: text)");
+    eprintln!("    -r, --recursive             Scan directories recursively");
+    eprintln!("    --ignore <pattern>          Ignore files matching pattern");
+    eprintln!("    -h, --help                  Print help information");
+    eprintln!("    -V, --version               Print version information");
 }
 
 fn severity_icon(severity: &Severity, show_icons: bool) -> String {
@@ -45,20 +34,6 @@ fn severity_icon(severity: &Severity, show_icons: bool) -> String {
         Severity::Low => "🔵 ",
         Severity::Info => "ℹ️  ",
     }.to_string()
-}
-
-fn print_usage() {
-    eprintln!("zkpm {} - ZK Pattern Matcher", VERSION);
-    eprintln!();
-    eprintln!("USAGE:");
-    eprintln!("    zkpm [OPTIONS] <pattern.yaml> <target_file>");
-    eprintln!("    zkpm validate <pattern.yaml>");
-    eprintln!("    zkpm list <pattern.yaml>");
-    eprintln!();
-    eprintln!("OPTIONS:");
-    eprintln!("    --format <json|text>    Output format (default: text)");
-    eprintln!("    -h, --help              Print help information");
-    eprintln!("    -V, --version           Print version information");
 }
 
 fn main() -> Result<()> {
@@ -81,11 +56,26 @@ fn main() -> Result<()> {
     }
     
     let mut format = config.output.default_format.as_str();
+    let mut recursive = false;
+    let mut custom_ignore: Vec<String> = Vec::new();
     let mut arg_offset = 1;
     
-    if args[1] == "--format" && args.len() > 3 {
-        format = &args[2];
-        arg_offset = 3;
+    while arg_offset < args.len() {
+        match args[arg_offset].as_str() {
+            "--format" if arg_offset + 1 < args.len() => {
+                format = &args[arg_offset + 1];
+                arg_offset += 2;
+            }
+            "-r" | "--recursive" => {
+                recursive = true;
+                arg_offset += 1;
+            }
+            "--ignore" if arg_offset + 1 < args.len() => {
+                custom_ignore.push(args[arg_offset + 1].clone());
+                arg_offset += 2;
+            }
+            _ => break,
+        }
     }
     
     let command = &args[arg_offset];
@@ -122,49 +112,41 @@ fn main() -> Result<()> {
             let target_path = PathBuf::from(&args[arg_offset + 1]);
             
             let library = load_pattern_library(&pattern_path)?;
-            let matcher = PatternMatcher::new(library)?;
-            let matches = matcher.scan_file(&target_path)?;
+            let matcher = zk_pattern_matcher::PatternMatcher::new(library)?;
             
-            if format == "json" {
-                output_json(&matches)?;
+            let mut ignore_patterns = load_ignore_patterns();
+            ignore_patterns.extend(custom_ignore);
+            
+            let scanner = Scanner::new(matcher, ignore_patterns);
+            
+            let output_format = match format {
+                "json" => OutputFormat::Json,
+                "sarif" => OutputFormat::Sarif,
+                _ => OutputFormat::Text,
+            };
+            let formatter = OutputFormatter::new(output_format, config.output.show_icons);
+            
+            if recursive {
+                let results = scanner.scan_recursive(&target_path)?;
+                formatter.output_recursive(&results)?;
+                
+                let has_critical = results.iter().any(|(_, matches)| {
+                    matches.iter().any(|m| matches!(m.severity, Severity::Critical | Severity::High))
+                });
+                if has_critical && config.output.fail_on_critical {
+                    std::process::exit(1);
+                }
             } else {
-                output_text(&matches, config.output.show_icons)?;
-            }
-            
-            let has_critical = matches.iter().any(|m| matches!(m.severity, Severity::Critical | Severity::High));
-            if has_critical && config.output.fail_on_critical {
-                std::process::exit(1);
+                let matches = scanner.scan_file(&target_path)?;
+                formatter.output_single(&matches, target_path.to_str().unwrap_or("unknown"))?;
+                
+                let has_critical = matches.iter().any(|m| matches!(m.severity, Severity::Critical | Severity::High));
+                if has_critical && config.output.fail_on_critical {
+                    std::process::exit(1);
+                }
             }
             
             Ok(())
         }
     }
-}
-
-fn output_json(matches: &[PatternMatch]) -> Result<()> {
-    let output = JsonOutput {
-        matches: matches.to_vec(),
-        summary: Summary::from_matches(matches),
-    };
-    println!("{}", serde_json::to_string_pretty(&output)?);
-    Ok(())
-}
-
-fn output_text(matches: &[PatternMatch], show_icons: bool) -> Result<()> {
-    if matches.is_empty() {
-        println!("No patterns matched.");
-        return Ok(());
-    }
-    
-    println!("Found {} matches:\n", matches.len());
-    
-    for m in matches {
-        println!("{}[{:?}] {}", severity_icon(&m.severity, show_icons), m.severity, m.message);
-        println!("   Pattern: {}", m.pattern_id);
-        println!("   Location: {}:{}", m.location.line, m.location.column);
-        println!("   Matched: {}", m.location.matched_text);
-        println!();
-    }
-    
-    Ok(())
 }
