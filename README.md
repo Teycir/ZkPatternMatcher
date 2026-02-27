@@ -104,10 +104,10 @@ Configurable limits via `.zkpm.toml` (see `.zkpm.toml.example`):
 
 ```bash
 # Run full validation (core + extended patterns)
-./validate_all.sh
+./scripts/validate_all.sh
 
 # Or run just extended pattern tests
-./test_extended_patterns.sh
+./scripts/test_extended_patterns.sh
 ```
 
 **Output:**
@@ -256,7 +256,7 @@ Developer markers (not vulnerability patterns):
 - `BUG:` - Matches developer-written vulnerability markers
 - `MISSING:` - Matches constraint TODO comments
 
-Run `./validate.sh` to verify.
+Run `./scripts/validate.sh` to verify.
 
 Matrix-validated extended detections:
 
