@@ -104,7 +104,7 @@ fn to_sarif_uri(file_path: &str) -> String {
         return normalized;
     }
 
-    if Path::new(file_path).is_absolute() {
+    if Path::new(file_path).is_absolute() || normalized.starts_with('/') {
         if normalized.starts_with('/') {
             format!("file://{}", normalized)
         } else {
