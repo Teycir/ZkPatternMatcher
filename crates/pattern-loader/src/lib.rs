@@ -2,6 +2,7 @@
 
 use anyhow::{Context, Result};
 use pattern_types::PatternLibrary;
+use std::collections::HashSet;
 use std::path::Path;
 
 #[derive(Debug, Clone, Copy)]
@@ -104,9 +105,18 @@ pub fn load_pattern_libraries_with_limits(
 
     let mut all_patterns = Vec::new();
     let mut all_invariants = Vec::new();
+    let mut seen_pattern_ids = HashSet::new();
 
     for path in paths {
         let lib = load_pattern_library_with_limits(path, limits)?;
+        for pattern in &lib.patterns {
+            if !seen_pattern_ids.insert(pattern.id.clone()) {
+                anyhow::bail!(
+                    "Duplicate pattern id '{}' found while merging libraries",
+                    pattern.id
+                );
+            }
+        }
         all_patterns.extend(lib.patterns);
         all_invariants.extend(lib.invariants);
     }
@@ -115,4 +125,33 @@ pub fn load_pattern_libraries_with_limits(
         patterns: all_patterns,
         invariants: all_invariants,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn duplicate_pattern_ids_across_libraries_are_rejected() {
+        let temp = tempfile::TempDir::new().expect("tempdir");
+        let first = temp.path().join("a.yaml");
+        let second = temp.path().join("b.yaml");
+
+        std::fs::write(
+            &first,
+            "patterns:\n  - id: dup\n    kind: literal\n    pattern: foo\n    message: one\ninvariants: []\n",
+        )
+        .expect("write first");
+        std::fs::write(
+            &second,
+            "patterns:\n  - id: dup\n    kind: literal\n    pattern: bar\n    message: two\ninvariants: []\n",
+        )
+        .expect("write second");
+
+        let err = load_pattern_libraries_with_limits(&[&first, &second], LoaderLimits::default())
+            .err()
+            .expect("expected duplicate ID error");
+
+        assert!(err.to_string().contains("Duplicate pattern id"));
+    }
 }

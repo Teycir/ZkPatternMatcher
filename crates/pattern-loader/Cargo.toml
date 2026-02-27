@@ -11,3 +11,6 @@ description = "YAML pattern loader for ZK vulnerability detection"
 pattern-types = { version = "0.1.0", path = "../pattern-types" }
 serde_yaml = "0.9"
 anyhow = "1.0"
+
+[dev-dependencies]
+tempfile = "3.8"
