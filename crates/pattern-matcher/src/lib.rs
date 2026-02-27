@@ -5,8 +5,11 @@ use fancy_regex::Regex as FancyRegex;
 use pattern_types::*;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod semantic;
+
+static INVARIANT_WARNING_EMITTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Copy)]
 pub struct MatcherLimits {
@@ -68,6 +71,15 @@ impl PatternMatcher {
                 "Too many patterns: {} (max {})",
                 library.patterns.len(),
                 limits.max_patterns
+            );
+        }
+
+        if !library.invariants.is_empty()
+            && !INVARIANT_WARNING_EMITTED.swap(true, Ordering::Relaxed)
+        {
+            eprintln!(
+                "Warning: {} invariants loaded but invariant enforcement is not implemented yet.",
+                library.invariants.len()
             );
         }
 
