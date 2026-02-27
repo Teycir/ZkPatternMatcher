@@ -265,3 +265,52 @@ fn test_cli_semantic_flag_emits_semantic_findings() {
     std::fs::remove_file(pattern_file).ok();
     std::fs::remove_file(circuit_file).ok();
 }
+
+#[test]
+fn test_cli_supports_equals_style_format_option() {
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--bin",
+            "zkpm",
+            "--",
+            "--format=json",
+            "patterns/real_vulnerabilities.yaml",
+            "tests/real_vulnerabilities/underconstrained_multiplier.circom",
+        ])
+        .output()
+        .expect("Failed to execute zkpm");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value =
+        serde_json::from_str(&stdout).expect("Output should be valid JSON");
+    assert!(json["matches"].is_array());
+}
+
+#[test]
+fn test_cli_warns_when_invariants_are_present_but_not_enforced() {
+    let pattern_file = "/tmp/zkpm_invariant_only.yaml";
+    let circuit_file = "/tmp/zkpm_invariant_case.circom";
+
+    std::fs::write(
+        pattern_file,
+        "patterns: []\ninvariants:\n  - name: foo\n    invariant_type: constraint\n    relation: \"x\"\n    oracle: must_hold\n    severity: low\n    description: \"unused\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        circuit_file,
+        "pragma circom 2.0.0;\ntemplate T(){ signal input a; signal output b; b <== a; }\ncomponent main = T();\n",
+    )
+    .unwrap();
+
+    let output = Command::new("cargo")
+        .args(["run", "--bin", "zkpm", "--", pattern_file, circuit_file])
+        .output()
+        .expect("Failed to execute zkpm");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("invariant enforcement is not implemented"));
+
+    std::fs::remove_file(pattern_file).ok();
+    std::fs::remove_file(circuit_file).ok();
+}

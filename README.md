@@ -5,7 +5,7 @@
 **Circuit Code → YAML Patterns → Vulnerabilities Detected**
 
 [![CI](https://github.com/Teycir/ZkPatternMatcher/actions/workflows/ci.yml/badge.svg)](https://github.com/Teycir/ZkPatternMatcher/actions/workflows/ci.yml)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
 ⭐ **If you find this useful, please star the repo!** ⭐
@@ -66,8 +66,9 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - 🔍 `MISSING:` constraint markers
 
 **⚠️ Important Limitations:**
-- Regex/literal matching only (no semantic analysis)
-- Invariant system is aspirational (YAML parsed but not enforced)
+- Regex/literal matching is syntax-based by default; this can match markers inside comments/strings
+- Use `--semantic` to enable two-pass cross-line checks and reduce false positives
+- Invariant system is aspirational (YAML parsed but not enforced yet; runtime warning emitted)
 - Small test corpus (3 vulnerable + 2 safe circuits)
 - See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency
 
@@ -88,7 +89,7 @@ cargo install --path . --locked
 
 ## Configuration
 
-Hardcoded limits (see `.zkpm.toml.example` for reference):
+Configurable limits via `.zkpm.toml` (see `.zkpm.toml.example`):
 - Max file size: 10MB
 - Max pattern file: 1MB  
 - Max patterns: 1000

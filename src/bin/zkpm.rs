@@ -19,7 +19,7 @@ fn print_usage() {
     eprintln!("    --format <json|text|sarif>  Output format (default: text)");
     eprintln!("    -r, --recursive             Scan directories recursively");
     eprintln!("    --ignore <pattern>          Ignore files matching pattern");
-    eprintln!("    --semantic                  Enable semantic analysis");
+    eprintln!("    --semantic                  Enable two-pass semantic checks (cross-line)");
     eprintln!("    -h, --help                  Print help information");
     eprintln!("    -V, --version               Print version information");
 }
@@ -72,6 +72,14 @@ fn main() -> Result<()> {
                 format = &args[arg_offset + 1];
                 arg_offset += 2;
             }
+            arg if arg.starts_with("--format=") => {
+                let value = arg.trim_start_matches("--format=");
+                if value.is_empty() {
+                    usage_error("missing value for --format");
+                }
+                format = value;
+                arg_offset += 1;
+            }
             "--format" => usage_error("missing value for --format"),
             "-r" | "--recursive" => {
                 recursive = true;
@@ -84,6 +92,14 @@ fn main() -> Result<()> {
             "--ignore" if arg_offset + 1 < args.len() => {
                 custom_ignore.push(args[arg_offset + 1].clone());
                 arg_offset += 2;
+            }
+            arg if arg.starts_with("--ignore=") => {
+                let value = arg.trim_start_matches("--ignore=");
+                if value.is_empty() {
+                    usage_error("missing value for --ignore");
+                }
+                custom_ignore.push(value.to_string());
+                arg_offset += 1;
             }
             "--ignore" => usage_error("missing value for --ignore"),
             arg if arg.starts_with('-') => usage_error(&format!("unknown option: {arg}")),
@@ -142,6 +158,17 @@ fn main() -> Result<()> {
             let target_path = PathBuf::from(&args[arg_offset + 1]);
 
             let library = load_pattern_library_with_limits(&pattern_path, loader_limits)?;
+            if !library.invariants.is_empty() {
+                eprintln!(
+                    "Warning: {} invariants loaded but invariant enforcement is not implemented yet.",
+                    library.invariants.len()
+                );
+            }
+            if !semantic {
+                eprintln!(
+                    "Note: regex-only mode may produce false positives from comments/strings. Use --semantic for higher-confidence findings."
+                );
+            }
             let matcher =
                 zk_pattern_matcher::PatternMatcher::new_with_limits(library, matcher_limits)?
                     .with_semantic(semantic);
