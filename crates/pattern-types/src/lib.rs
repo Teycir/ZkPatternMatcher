@@ -55,6 +55,7 @@ pub struct Pattern {
 #[serde(rename_all = "lowercase")]
 pub enum PatternKind {
     Regex,
+    FancyRegex,  // Supports backreferences (\1) and lookahead/lookbehind
     Literal,
     Ast,
 }

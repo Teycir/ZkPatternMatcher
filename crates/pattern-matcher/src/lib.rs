@@ -3,6 +3,7 @@
 use anyhow::{Context, Result};
 use pattern_types::*;
 use regex::Regex;
+use fancy_regex::Regex as FancyRegex;
 use std::collections::HashMap;
 
 pub mod semantic;
@@ -11,6 +12,7 @@ pub mod semantic;
 pub struct PatternMatcher {
     patterns: Vec<Pattern>,
     compiled_regex: HashMap<String, Regex>,
+    compiled_fancy_regex: HashMap<String, FancyRegex>,
 }
 
 impl PatternMatcher {
@@ -47,28 +49,46 @@ impl PatternMatcher {
         }
 
         let mut compiled_regex = HashMap::new();
+        let mut compiled_fancy_regex = HashMap::new();
 
         for pattern in &library.patterns {
-            if pattern.kind == PatternKind::Regex {
-                let re = Regex::new(&pattern.pattern)
-                    .with_context(|| format!("Invalid regex in pattern {}", pattern.id))?;
+            match pattern.kind {
+                PatternKind::Regex => {
+                    let re = Regex::new(&pattern.pattern)
+                        .with_context(|| format!("Invalid regex in pattern {}", pattern.id))?;
 
-                // Check regex complexity to prevent ReDoS
-                if pattern.pattern.len() > 200 {
-                    anyhow::bail!(
-                        "Regex pattern too complex in {}: {} chars (max 200)",
-                        pattern.id,
-                        pattern.pattern.len()
-                    );
+                    if pattern.pattern.len() > 200 {
+                        anyhow::bail!(
+                            "Regex pattern too complex in {}: {} chars (max 200)",
+                            pattern.id,
+                            pattern.pattern.len()
+                        );
+                    }
+
+                    compiled_regex.insert(pattern.id.clone(), re);
                 }
+                PatternKind::FancyRegex => {
+                    let re = FancyRegex::new(&pattern.pattern)
+                        .with_context(|| format!("Invalid fancy-regex in pattern {}", pattern.id))?;
 
-                compiled_regex.insert(pattern.id.clone(), re);
+                    if pattern.pattern.len() > 200 {
+                        anyhow::bail!(
+                            "Fancy-regex pattern too complex in {}: {} chars (max 200)",
+                            pattern.id,
+                            pattern.pattern.len()
+                        );
+                    }
+
+                    compiled_fancy_regex.insert(pattern.id.clone(), re);
+                }
+                _ => {}
             }
         }
 
         Ok(Self {
             patterns: library.patterns,
             compiled_regex,
+            compiled_fancy_regex,
         })
     }
 
@@ -97,6 +117,22 @@ impl PatternMatcher {
                     PatternKind::Regex => {
                         if let Some(re) = self.compiled_regex.get(&pattern.id) {
                             if let Some(m) = re.find(line) {
+                                matches.push(PatternMatch {
+                                    pattern_id: pattern.id.clone(),
+                                    message: pattern.message.clone(),
+                                    severity: pattern.severity.clone().unwrap_or(Severity::Info),
+                                    location: MatchLocation {
+                                        line: line_num + 1,
+                                        column: m.start() + 1,
+                                        matched_text: m.as_str().to_string(),
+                                    },
+                                });
+                            }
+                        }
+                    }
+                    PatternKind::FancyRegex => {
+                        if let Some(re) = self.compiled_fancy_regex.get(&pattern.id) {
+                            if let Ok(Some(m)) = re.find(line) {
                                 matches.push(PatternMatch {
                                     pattern_id: pattern.id.clone(),
                                     message: pattern.message.clone(),

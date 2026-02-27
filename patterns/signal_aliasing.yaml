@@ -24,9 +24,9 @@ patterns:
     severity: medium
 
   # Pattern 3: Detect same signal name used in two consecutive component assignments
-  # NOTE: Requires fancy-regex for backreference support - marked as 'ast' to skip
+  # Requires fancy-regex for backreference support
   - id: same_signal_dual_port_inline
-    kind: ast   # requires fancy-regex; skipped until engine upgrade
+    kind: fancyregex   # backreference now supported
     pattern: '\w+\.\w+\s*<==\s*(\w+)\s*;\s*\w+\.\w+\s*<==\s*\1\s*;'
     message: >
       HIGH: Same signal wired to two component ports on one line.

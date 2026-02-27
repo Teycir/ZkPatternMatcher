@@ -10,4 +10,5 @@ description = "Pattern matching engine for ZK vulnerability detection"
 [dependencies]
 pattern-types = { version = "0.1.0", path = "../pattern-types" }
 regex = "1.10"
+fancy-regex = "0.13"
 anyhow = "1.0"
