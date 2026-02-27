@@ -8,6 +8,6 @@ repository.workspace = true
 description = "Pattern matching engine for ZK vulnerability detection"
 
 [dependencies]
-pattern-types = { path = "../pattern-types" }
+pattern-types = { version = "0.1.0", path = "../pattern-types" }
 regex = "1.10"
 anyhow = "1.0"
