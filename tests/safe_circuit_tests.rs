@@ -57,7 +57,7 @@ fn test_safe_circuits_batch() {
     for circuit in safe_circuits {
         let matches = matcher
             .scan_file(Path::new(circuit))
-            .expect(&format!("Failed to scan {}", circuit));
+            .unwrap_or_else(|_| panic!("Failed to scan {}", circuit));
 
         let critical_or_high = matches
             .iter()
