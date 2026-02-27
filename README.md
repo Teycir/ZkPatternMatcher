@@ -81,7 +81,7 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - 6 integration tests using real vulnerabilities from ZkPatternFuzz
 - 3 real vulnerabilities validated
 - 0 false positives on 2 safe circuits
-- Extended patterns available in `patterns/improved_patterns.yaml`
+- Production patterns available in `patterns/production.yaml`
 
 ## Installation
 

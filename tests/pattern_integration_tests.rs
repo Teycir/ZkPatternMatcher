@@ -6,7 +6,7 @@ use std::path::Path;
 
 #[test]
 fn test_nullifier_collision_detection() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
@@ -31,7 +31,7 @@ fn test_nullifier_collision_detection() {
 
 #[test]
 fn test_underconstrained_merkle_detection() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
@@ -56,7 +56,7 @@ fn test_underconstrained_merkle_detection() {
 
 #[test]
 fn test_vulnerability_marker_detection() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
@@ -80,7 +80,7 @@ fn test_vulnerability_marker_detection() {
 
 #[test]
 fn test_signal_nullifier_pattern() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
@@ -109,7 +109,7 @@ fn test_signal_nullifier_pattern() {
 
 #[test]
 fn test_missing_constraint_markers() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
@@ -136,7 +136,7 @@ fn test_missing_constraint_markers() {
 
 #[test]
 fn test_pattern_performance_metrics() {
-    let library = load_pattern_library(Path::new("patterns/improved_patterns.yaml"))
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
         .expect("Failed to load patterns");
     let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
     
