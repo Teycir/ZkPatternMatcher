@@ -285,6 +285,9 @@ See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Step-by-step tutorial
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guide
+- **[SECURITY.md](docs/SECURITY.md)** - Security policy
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history
+- **[CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)** - Community guidelines
 
 ## Contributing
 

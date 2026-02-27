@@ -13,7 +13,7 @@
 
 ## Project Info
 
-- **[CHANGELOG.md](../CHANGELOG.md)** - Version history
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
 - **[LICENSE.md](../LICENSE.md)** - MIT license
-- **[SECURITY.md](../SECURITY.md)** - Security policy
-- **[CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)** - Community guidelines
+- **[SECURITY.md](SECURITY.md)** - Security policy
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community guidelines
