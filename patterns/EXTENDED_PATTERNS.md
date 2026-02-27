@@ -114,17 +114,23 @@ jobs:
 
 ### Regex Engine Compatibility
 
-⚠️ **Two patterns require `fancy-regex` for backreference support**:
-- `signal_aliasing.yaml`: `signal_self_constraint` (if implemented with backrefs)
-- Standard Rust `regex` crate does not support backreferences
+⚠️ **Critical Limitation**: Standard Rust `regex` crate does not support:
+- **Backreferences** (`\1`, `\2`) - patterns like `(\w+).*\1` will fail
+- **Lookahead/Lookbehind** (`(?=)`, `(?!)`) - patterns with these will fail
+- **Multiline spans** - `[\s\S]{0,200}` across line boundaries not supported
 
-**Workaround**: Current implementation avoids backreferences. Future enhancement may require:
+**Impact on Patterns**:
+- `signal_aliasing.yaml`: Backreference pattern removed, replaced with info-level manual check
+- `equality_check.yaml`: Lookahead pattern removed, replaced with single-line heuristic
+- Cross-line signal tracking (orphaned `<--` detection) requires manual review
 
-```toml
-# Cargo.toml
-[dependencies]
-fancy-regex = "0.13"
-```
+**Workarounds**:
+1. Use info-level patterns to flag lines for manual cross-reference
+2. Simplify to single-line heuristics (higher false positive rate)
+3. Future: Add `fancy-regex` crate (requires code changes)
+4. Future: Implement two-pass semantic analyzer (major refactor)
+
+**Current Status**: All patterns use standard `regex` crate features only.
 
 ### False Positive Management
 

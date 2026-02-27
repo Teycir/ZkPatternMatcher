@@ -34,18 +34,27 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Pattern Matching Limitations
 
-**Current State**: Regex and literal string matching only
+**Current State**: Regex and literal string matching only (standard Rust `regex` crate)
 
-**Limitations**:
-- No semantic analysis (can't detect logic bugs)
+**Regex Engine Limitations**:
+- No backreferences (`\1`, `\2`, etc.) - not supported by Rust `regex` crate
+- No lookahead/lookbehind (`(?=)`, `(?!)`, `(?<=)`, `(?<!)`) - not supported
+- Line-by-line scanning only - multiline patterns with `[\s\S]` not supported
+- Patterns requiring these features have been simplified or marked as manual checks
+
+**Semantic Analysis Limitations**:
+- No cross-line signal tracking (can't detect orphaned `<--` across multiple lines)
 - No data flow tracking
 - No constraint system analysis
 - No witness generation testing
 - No proof verification testing
 
-**Impact**: Can only detect syntactic patterns, not semantic vulnerabilities.
+**Impact**: Can only detect syntactic patterns on single lines. Complex vulnerabilities requiring multi-line analysis or backreferences require manual review.
 
-**Future**: AST-based matching planned but not implemented.
+**Future Options**:
+1. Add `fancy-regex` crate for backreference support (adds dependency)
+2. Implement two-pass semantic analyzer for cross-line checks (major refactor)
+3. AST-based matching (requires Circom parser integration)
 
 ## Invariant System
 

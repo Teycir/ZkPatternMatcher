@@ -5,6 +5,8 @@ use pattern_types::*;
 use regex::Regex;
 use std::collections::HashMap;
 
+pub mod semantic;
+
 /// Pattern matcher with compiled regex cache.
 pub struct PatternMatcher {
     patterns: Vec<Pattern>,
