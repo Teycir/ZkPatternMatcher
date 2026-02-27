@@ -4,11 +4,14 @@
 
 **Circuit Code → YAML Patterns → Vulnerabilities Detected**
 
+[![CI](https://github.com/Teycir/ZkPatternMatcher/workflows/CI/badge.svg)](https://github.com/Teycir/ZkPatternMatcher/actions)
+[![Crates.io](https://img.shields.io/crates/v/zkpm.svg)](https://crates.io/crates/zkpm)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 
 ⭐ **If you find this useful, please star the repo!** ⭐
+
+![zkpm demo](docs/demo.gif)
 
 </div>
 
