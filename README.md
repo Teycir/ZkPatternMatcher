@@ -55,7 +55,7 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Status: Stable** - Core real-vulnerability validation is stable (3 validated vulnerability patterns), while broader pattern coverage continues to expand and be validated.
+**Status: Stable** - Core baseline validation is stable (3 validated vulnerability patterns), and the automated real-world matrix currently covers 8 vulnerable fixtures (+ 4 safe controls).
 
 **Core Validated Patterns:**
 - ✅ Underconstrained assignments (`<--` operator)
@@ -70,13 +70,13 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - Regex/literal matching is syntax-based by default; this can match markers inside comments/strings
 - Use `--semantic` to enable two-pass cross-line checks and reduce false positives
 - Invariant system is aspirational (YAML parsed but not enforced yet; runtime warning emitted)
-- Small test corpus (3 vulnerable + 2 safe circuits)
+- Real-world corpus is expanding; automated matrix currently includes 8 vulnerable fixtures + 4 safe controls
 - See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for complete transparency
 
 **Test Results:**
 - `cargo test -q` passes locally (39 passed, 1 ignored integration test)
-- 3 real vulnerabilities validated (from ZkPatternFuzz)
-- 0 false positives on 2 safe circuits
+- 8 real-world vulnerability fixtures validated in the automated matrix (+ 4 safe controls)
+- 0 high/critical false positives on 4 safe controls in the matrix
 - Pattern files: `patterns/real_vulnerabilities.yaml` (5 entries: 3 patterns + 2 markers)
 
 ## Installation
@@ -240,7 +240,7 @@ See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-syst
 
 ## Pattern Library
 
-**Current Status: Stable Core Coverage (3 validated vulnerability patterns)**
+**Current Status: Stable core baseline (3 validated vulnerability patterns) + expanded real-world matrix coverage (8 vulnerable fixtures, 4 safe controls)**
 
 ⚠️ **Transparency Note**: The core engine is stable. The pattern library is intentionally quality-gated, and many extended patterns are still under validation.
 
