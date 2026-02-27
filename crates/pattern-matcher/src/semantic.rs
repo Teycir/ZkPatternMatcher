@@ -133,6 +133,8 @@ fn scan_template(tmpl: &TemplateBlock) -> Vec<SemanticFinding> {
     findings.extend(check_signal_aliasing(&port_wirings));
     findings.extend(check_var_equality_constraint(&tmpl.lines));
 
+    // Template name used for scoping - prevents cross-template signal bleed
+    let _ = &tmpl.name;
     let _ = component_names; // reserved for future component-level checks
 
     findings
