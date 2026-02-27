@@ -1,0 +1,105 @@
+patterns:
+  # Signal aliasing - reusing signal names
+  - id: signal_name_reuse
+    kind: regex
+    pattern: 'signal\s+(input|output)?\s*(\w+).*signal\s+(input|output)?\s*\2'
+    message: 'Potential signal name reuse detected'
+    severity: high
+
+  # Missing IsZero constraint usage
+  - id: missing_iszero_check
+    kind: regex
+    pattern: 'if\s*\(\s*\w+\s*==\s*0\s*\)(?!.*IsZero)'
+    message: 'Zero check without IsZero component'
+    severity: medium
+
+  # Unchecked division
+  - id: unchecked_division
+    kind: regex
+    pattern: '\/(?!\/)'
+    message: 'Division operation - verify divisor is non-zero'
+    severity: high
+
+  # Missing constraint on intermediate signal
+  - id: intermediate_signal_no_constraint
+    kind: regex
+    pattern: 'signal\s+\w+\s*<--[^;]+;(?!\s*\w+\s*===)'
+    message: 'Intermediate signal assigned without constraint'
+    severity: critical
+
+  # Potential field overflow
+  - id: large_constant_multiplication
+    kind: regex
+    pattern: '\*\s*\d{10,}'
+    message: 'Large constant multiplication - check for field overflow'
+    severity: medium
+
+  # Missing public input validation
+  - id: public_input_no_validation
+    kind: regex
+    pattern: 'signal\s+input\s+public\s+\w+;(?!.*range|.*bound|.*check)'
+    message: 'Public input without validation comment'
+    severity: high
+
+  # Merkle path without validation
+  - id: merkle_path_no_validation
+    kind: regex
+    pattern: 'pathElements\[|pathIndices\[(?!.*assert|.*constraint)'
+    message: 'Merkle path array access without validation'
+    severity: critical
+
+  # Signature verification without proper checks
+  - id: signature_no_pubkey_check
+    kind: regex
+    pattern: 'EdDSA|ECDSA(?!.*pubkey.*check|.*public.*key.*valid)'
+    message: 'Signature verification without public key validation'
+    severity: critical
+
+  # Commitment without uniqueness check
+  - id: commitment_no_uniqueness
+    kind: regex
+    pattern: 'Poseidon|MiMC|Pedersen(?!.*nullifier|.*unique)'
+    message: 'Commitment hash without uniqueness mechanism'
+    severity: high
+
+  # Loop without bounds
+  - id: unbounded_loop
+    kind: regex
+    pattern: 'for\s*\(\s*var\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*\w+\s*;'
+    message: 'Loop with variable bound - verify constraint count'
+    severity: medium
+
+  # Bitwise operations without range proof
+  - id: bitwise_no_range_proof
+    kind: regex
+    pattern: '<<|>>|&|\||\^(?!.*Num2Bits|.*range)'
+    message: 'Bitwise operation without range proof'
+    severity: high
+
+  # Array access without bounds check
+  - id: array_access_no_bounds
+    kind: regex
+    pattern: '\w+\[\w+\](?!.*assert|.*<\s*\d+)'
+    message: 'Array access without bounds check'
+    severity: high
+
+  # Missing nullifier uniqueness
+  - id: nullifier_no_uniqueness_check
+    kind: regex
+    pattern: 'signal\s+(input|output)\s+nullifier(?!.*unique|.*spent|.*used)'
+    message: 'Nullifier without uniqueness enforcement'
+    severity: critical
+
+  # Equality check without proper constraint
+  - id: equality_check_no_constraint
+    kind: regex
+    pattern: '==(?!=)'
+    message: 'Equality check (==) instead of constraint (===)'
+    severity: high
+
+  # Missing component instantiation
+  - id: component_declared_not_used
+    kind: regex
+    pattern: 'component\s+\w+\s*;(?!.*\w+\s*=)'
+    message: 'Component declared but not instantiated'
+    severity: medium
