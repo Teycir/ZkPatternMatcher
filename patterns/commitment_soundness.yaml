@@ -1,0 +1,89 @@
+patterns:
+  # Pattern 1: Commitment without randomness (deterministic commitment)
+  - id: deterministic_commitment
+    kind: regex
+    pattern: '\b(?:commit|commitment|Commit)\w*\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)'
+    message: >
+      HIGH: Commitment appears to use a single-input hash (no blinding factor).
+      Deterministic commitments are not hiding — an observer can brute-force
+      the preimage over small domains. Use at least two inputs:
+        commitment <== Poseidon(2)([value, randomness]);
+    severity: high
+
+  # Pattern 2: Nullifier derived without secret
+  - id: nullifier_without_secret
+    kind: regex
+    pattern: '\b(?:nullifier|nul)\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)'
+    message: >
+      CRITICAL: Nullifier derived from single-input hash. A nullifier must
+      incorporate a secret (e.g., private key or randomness) to prevent
+      front-running and nullifier pre-computation. Use:
+        nullifier <== Poseidon(2)([secret, externalNullifier]);
+    severity: critical
+
+  # Pattern 3: Commitment output not constrained to a public signal
+  - id: commitment_not_exposed
+    kind: regex
+    pattern: '\b(?:commit|commitment|Commit)\w*\s*<--'
+    message: >
+      HIGH: Commitment assigned with <-- (unconstrained witness hint).
+      The commitment must be constrained (===) and typically exposed as a
+      public output. If the prover computes the commitment without a circuit
+      constraint, they can substitute any value.
+    severity: high
+
+  # Pattern 4: Reuse of randomness across commitments
+  - id: randomness_signal_reuse_heuristic
+    kind: regex
+    pattern: '(?:Poseidon|MiMC|Pedersen).+(?:Poseidon|MiMC|Pedersen)'
+    message: >
+      MEDIUM: Two hash/commitment components referenced on the same line.
+      Verify that randomness signals are not reused across multiple commitments.
+      Randomness reuse can leak the committed value via algebraic relations
+      between commitments.
+    severity: medium
+
+  # Pattern 5: IsEqual used to verify commitment (correct pattern — info)
+  - id: commitment_equality_check
+    kind: regex
+    pattern: 'component\s+\w+\s*=\s*IsEqual\s*\(\s*\)'
+    message: >
+      INFO: IsEqual component detected. If used to verify a commitment
+      opening, ensure: (1) the hash is recomputed inside the circuit from
+      private inputs, (2) IsEqual.out is constrained to 1 (=== 1), not
+      merely observed.
+    severity: info
+
+  # Pattern 6: Missing === 1 on IsEqual output
+  - id: isequal_out_not_constrained
+    kind: regex
+    pattern: '\.out\s*<==\s*(?!\s*1\b)[^;]+'
+    message: >
+      MEDIUM: Component output assigned via <== to a non-literal value.
+      If this is an IsEqual/IsZero check, ensure the output is subsequently
+      constrained to 1:
+        checker.out === 1;
+      Failing to assert the result means the check passes regardless of input.
+    severity: medium
+
+invariants:
+  - name: commitment_is_hiding
+    invariant_type: constraint
+    relation: "commitment_hash_has_randomness_input"
+    oracle: should_hold
+    severity: high
+    description: "Commitments must use at least two hash inputs (value + randomness)"
+
+  - name: nullifier_has_secret
+    invariant_type: constraint
+    relation: "nullifier_hash_incorporates_private_signal"
+    oracle: must_hold
+    severity: critical
+    description: "Nullifiers must incorporate a private secret signal"
+
+  - name: commitment_publicly_exposed
+    invariant_type: constraint
+    relation: "commitment_output_constrained_and_public"
+    oracle: must_hold
+    severity: high
+    description: "Commitment outputs must be constrained (===) and declared as public outputs"

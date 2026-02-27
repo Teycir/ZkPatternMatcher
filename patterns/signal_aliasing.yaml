@@ -1,26 +1,24 @@
 patterns:
-  # Pattern: Component input aliasing - same signal wired to multiple ports
-  # Detects: comp.a <== val; ... comp.b <== val; (within ~5 lines)
-  - id: component_input_aliasing
+  # Pattern: Component port assignment (info-level anchor)
+  # Used to flag lines for manual cross-reference
+  - id: component_port_assignment
     kind: regex
-    pattern: '\w+\.\w+\s*<==\s*(\w+)\s*;[\s\S]{0,200}\w+\.\w+\s*<==\s*\1\s*;'
+    pattern: '^\s*\w+\.\w+\s*<==\s*(\w+)\s*;'
     message: >
-      HIGH: The same signal appears to be wired to multiple component inputs.
-      Verify these inputs are intentionally aliased. If they should be
-      independent witnesses, this is a signal aliasing vulnerability that
-      collapses the proof's degrees of freedom.
-    severity: high
+      INFO: Component port assignment detected. Manually verify that the same
+      signal is not wired to multiple independent component inputs within this
+      template. Signal aliasing collapses proof degrees of freedom.
+    severity: info
 
-  # Pattern: Intermediate array signals assigned without unique constraints
-  # Detects: intermediate[i] <-- (common in Merkle path circuits)
+  # Pattern: Intermediate array unconstrained assignment
   - id: intermediate_array_unconstrained
     kind: regex
-    pattern: 'intermediate\[\d+\]\s*<--'
+    pattern: '\bintermediate\s*\[\s*\d+\s*\]\s*<--'
     message: >
       MEDIUM: Intermediate array element assigned with <-- (unconstrained).
-      In Merkle path circuits, intermediate values must be constrained to
-      prevent path forgery. Verify each intermediate[i] has a corresponding
-      constraint equation.
+      In Merkle path circuits, each intermediate[i] must be constrained to
+      prevent path forgery. Ensure a corresponding constraint equation exists:
+        intermediate[i] === left_child * selector + right_child * (1 - selector);
     severity: medium
 
 invariants:

@@ -24,30 +24,18 @@ patterns:
       === (constraint only). The = operator does not create constraints.
     severity: high
 
-  # Pattern: Unconstrained assignment followed by separate constraint
-  # Detects: x <-- f(); x === g(); (potential logic error if f != g)
-  - id: separate_assignment_and_constraint
+  # Pattern: Bare hint assignment (simplified orphaned detection)
+  # Detects: <-- on a line with no === on same line
+  - id: bare_hint_assignment
     kind: regex
-    pattern: '\w+\s*<--\s*\w+[\(\[][\w\s,\)\]]*;[\s\n]*\w+\s*===\s*\w+[\(\[]'
+    pattern: '^\s*\w[\w\[\]]*\s*<--\s*[^;=]+;\s*$'
     message: >
-      MEDIUM: Unconstrained assignment (<--) followed by separate constraint
-      (===). This pattern is valid when computing an intermediate value then
-      constraining it, but verify the constraint expression matches the
-      assignment logic. If they differ, the prover can exploit the gap.
-      Consider using <== for combined assignment+constraint when possible.
-    severity: medium
-
-  # Pattern: Orphaned unconstrained assignment (no following constraint)
-  # Detects: <-- without === within reasonable distance
-  - id: orphaned_unconstrained_assignment
-    kind: regex
-    pattern: '<--\s*[^;]+;\s*(?![\s\S]{0,200}===)'
-    message: >
-      HIGH: Unconstrained assignment (<--) with no following === constraint
-      detected within 200 characters. The signal is assigned a witness value
-      but never constrained - the prover can substitute any value.
-      Safe pattern: out <-- computation(); out * out === input;
-      Dangerous pattern: out <-- computation(); (no constraint follows)
+      HIGH: Unconstrained assignment (<--) with no constraint on the same line.
+      Every <-- hint must be paired with a === constraint (either on the same
+      line or immediately following). If no === is present, the prover can
+      substitute any value for this signal.
+      Safe pattern:  out <-- compute(x); out * out === x;
+      Danger signal: out <-- compute(x);   ← this fires here
     severity: high
 
   # Pattern: Correct constraint operator usage (positive detection)

@@ -1,0 +1,62 @@
+patterns:
+  # Pattern 1: Public signal declared but never referenced in a constraint
+  - id: public_input_declared
+    kind: regex
+    pattern: '^\s*signal\s+input\s+(?!private\b)\w+'
+    message: >
+      INFO: Public input signal declared. Verify this signal is used in at
+      least one constraint (=== or <==). A public input that is declared but
+      never constrained provides no security guarantee — a malicious prover
+      can substitute any value that satisfies the unconstrained circuit.
+    severity: info
+
+  # Pattern 2: Public input used directly in arithmetic without range check
+  - id: unchecked_public_input_arithmetic
+    kind: regex
+    pattern: '\b(in|input|pub|publicInput|x|y)\s*[+\-\*]\s*\w+\s*(?:===|<==)'
+    message: >
+      MEDIUM: Public input signal used in arithmetic constraint without an
+      apparent range check. If the input is not range-bounded (e.g., via
+      Num2Bits or LessThan), a prover can supply field-sized values that
+      wrap around, causing unexpected arithmetic behavior.
+      Add: component range = Num2Bits(n); range.in <== publicInput;
+    severity: medium
+
+  # Pattern 3: Num2Bits used on a signal (positive: range check present)
+  - id: num2bits_range_check_present
+    kind: regex
+    pattern: 'component\s+\w+\s*=\s*Num2Bits\s*\('
+    message: >
+      INFO: Num2Bits component detected — range check in use. Ensure the
+      output bits are consumed (constrained) and the bit-width matches the
+      expected input domain.
+    severity: info
+
+  # Pattern 4: Main component with explicit public list
+  - id: main_component_public_declaration
+    kind: regex
+    pattern: 'component\s+main\s*\{[^}]*public\s*\['
+    message: >
+      INFO: Main component declares public inputs. Cross-check that every
+      signal listed as public is also validated within the template before
+      use in sensitive computations (nullifiers, commitments, Merkle roots).
+    severity: info
+
+  # Pattern 5: Poseidon/MiMC hash of unchecked input
+  - id: hash_of_unchecked_input
+    kind: regex
+    pattern: '(?:Poseidon|MiMC|Pedersen|SHA256)\s*\(\s*\d+\s*\)'
+    message: >
+      INFO: Hash component instantiated. Verify that all signals fed into
+      the hash inputs are properly range-checked. Feeding out-of-range
+      values into hash components can produce collisions in the field
+      arithmetic layer (not the hash function itself).
+    severity: info
+
+invariants:
+  - name: public_inputs_range_checked
+    invariant_type: constraint
+    relation: "public_signal_has_num2bits_or_lessthan"
+    oracle: should_hold
+    severity: high
+    description: "Every public input used in arithmetic should have an explicit range constraint"
