@@ -3,62 +3,112 @@ patterns:
   - id: unconstrained_assignment
     kind: regex
     pattern: '\b\w+\s*<--\s*\w+'
-    message: 'CRITICAL: Unconstrained assignment operator (<--) detected. This creates a witness assignment without a constraint, allowing prover to forge values.'
+    message: 'Unconstrained assignment operator (<--) detected'
+    description: |
+      The <-- operator creates a witness assignment without a constraint, allowing the prover 
+      to forge arbitrary values. Use <== for constrained assignments or add explicit constraints 
+      with === after assignment.
     severity: critical
+    confidence: high
+    references:
+      - https://zkbugs.com/vulnerabilities/underconstrained-signals
+      - https://docs.circom.io/circom-language/constraint-generation/
+    false_positive_note: "May match <-- in comments. Manual review recommended."
 
   # Pattern 2: Nullifier with unconstrained assignment (context-aware)
   - id: weak_nullifier_assignment
     kind: regex
     pattern: 'signal\s+\w*nullifier\w*\s*<--'
-    message: 'CRITICAL: Nullifier using unconstrained assignment. Enables replay/double-spend attacks.'
+    message: 'Nullifier using unconstrained assignment'
+    description: |
+      Nullifiers must be cryptographically bound to prevent replay attacks. Using <-- allows 
+      the prover to reuse nullifiers across different actions. Ensure nullifiers are properly 
+      constrained with <== or add explicit uniqueness constraints.
     severity: critical
+    confidence: high
+    references:
+      - https://zkbugs.com/vulnerabilities/weak-nullifiers
+    false_positive_note: "Requires 'signal' keyword to reduce false positives."
 
   # Pattern 3: Missing constraint documentation markers
   - id: missing_constraint_marker
     kind: regex
     pattern: '(MISSING:|TODO:|FIXME:)\s*constraint'
-    message: 'Documentation indicates missing constraint implementation'
+    message: 'Documentation indicates missing constraint'
+    description: |
+      Developer comments indicate incomplete constraint implementation. Review the code to 
+      ensure all signals are properly constrained before production deployment.
     severity: high
+    confidence: medium
+    references: []
+    false_positive_note: "Matches developer comments intentionally marking incomplete work."
 
   # Pattern 4: Known vulnerability markers
   - id: vulnerability_marker
     kind: regex
     pattern: '(BUG:|VULN:|EXPLOIT:)'
-    message: 'Known vulnerability marker found in code'
+    message: 'Known vulnerability marker found'
+    description: |
+      Explicit vulnerability markers in code indicate known security issues. These should be 
+      addressed before deployment or removed if already fixed.
     severity: critical
+    confidence: high
+    references: []
+    false_positive_note: "Intentional markers for tracking known issues."
 
   # Pattern 5: Missing range check documentation
   - id: missing_range_check_doc
     kind: literal
     pattern: 'No constraint that value is in valid range'
-    message: 'Missing range constraint allows field overflow attacks'
+    message: 'Missing range constraint documentation'
+    description: |
+      Field elements must be constrained to valid ranges to prevent overflow attacks. 
+      Add explicit range checks using LessThan or similar components.
     severity: high
+    confidence: medium
+    references:
+      - https://zkbugs.com/vulnerabilities/missing-range-checks
+    false_positive_note: "Literal string match - low false positive rate."
 
   # Pattern 6: Unconstrained signal declaration (heuristic)
   - id: signal_without_constraint
     kind: regex
     pattern: 'signal\s+\w+\s*<--\s*[^;]+;\s*$'
-    message: 'Signal assigned without immediate constraint (heuristic - may be false positive)'
+    message: 'Signal assigned without immediate constraint'
+    description: |
+      Signal uses <-- without an immediately following constraint. This is a heuristic check - 
+      the signal may be constrained on subsequent lines. Manual review required.
     severity: medium
+    confidence: low
+    references: []
+    false_positive_note: "High false positive rate - signal may be constrained on next line."
 
+# Note: Invariant checking requires AST-level analysis and is not yet implemented.
+# The examples below show the intended schema for future semantic analysis.
 invariants:
   - name: constrained_outputs
     invariant_type: constraint
-    relation: "output_constraint_exists"
+    relation: "rank(constraint_matrix) == num_signals - num_public_inputs - 1"
     oracle: must_hold
     severity: critical
-    description: "All outputs must be properly constrained to inputs"
+    description: "All output signals must be fully determined by constraints (full rank constraint matrix)"
+    references:
+      - https://zkbugs.com/vulnerabilities/underconstrained-outputs
 
   - name: nullifier_uniqueness
     invariant_type: constraint
-    relation: "nullifier_unique_per_action"
+    relation: "hash(secret, nonce) != hash(secret', nonce') for secret != secret' OR nonce != nonce'"
     oracle: must_hold
     severity: critical
-    description: "Nullifiers must be cryptographically unique and bound to actions"
+    description: "Nullifiers must be cryptographically unique - different inputs must produce different nullifiers"
+    references:
+      - https://zkbugs.com/vulnerabilities/nullifier-collision
 
   - name: range_bounds
     invariant_type: constraint
-    relation: "value_within_field_bounds"
+    relation: "for all signals s: 0 <= s < field_modulus AND s constrained to expected bit width"
     oracle: must_hold
     severity: high
-    description: "All numeric values must be constrained to valid field ranges"
+    description: "All numeric values must be constrained to valid field ranges and expected bit widths"
+    references:
+      - https://zkbugs.com/vulnerabilities/missing-range-checks
