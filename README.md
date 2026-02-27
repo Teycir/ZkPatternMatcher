@@ -248,6 +248,14 @@ zkpm --format json patterns/all.yaml circuit.circom > after.json
 diff <(jq -S . before.json) <(jq -S . after.json)
 ```
 
+## Documentation
+
+See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
+
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Step-by-step tutorial
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design
+- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guide
+
 ## Extracted from ZkPatternFuzz
 
 This library contains the pattern matching component from ZkPatternFuzz.
