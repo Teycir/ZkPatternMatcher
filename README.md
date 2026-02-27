@@ -7,6 +7,23 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Quick Start](#quick-start)
+- [Pattern Format](#pattern-format)
+- [Pattern Library](#pattern-library)
+- [Use Cases](#use-cases)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Pattern Sources](#pattern-sources)
+- [License](#license)
+- [Contact](#contact)
+- [Citation](#citation)
+- [Related Projects](#related-projects)
+
 ## Overview
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
@@ -256,13 +273,9 @@ See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guide
 
-## Extracted from ZkPatternFuzz
-
-This library contains the pattern matching component from ZkPatternFuzz.
-
 ## Contributing
 
-Contributions welcome.
+Contributions welcome. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 ## Pattern Sources
 
@@ -277,7 +290,8 @@ MIT - See [LICENSE.md](LICENSE.md) for details.
 ## Contact
 
 **Teycir Ben Soltane**  
-Email: teycir@pxdmail.net
+Email: teycir@pxdmail.net  
+Website: https://teycirbensoltane.tn
 
 ## Citation
 
