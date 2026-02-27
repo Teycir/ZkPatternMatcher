@@ -14,6 +14,8 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
+⚠️ **Status**: Proof-of-concept with 3 patterns. See [LIMITATIONS.md](LIMITATIONS.md) before production use.
+
 ## Table of Contents
 
 - [ZkPatternMatcher](#zkpatternmatcher)
@@ -50,6 +52,8 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
+**Status: Proof-of-Concept** - Currently detects 3 vulnerability classes. Production use requires expanding the pattern library.
+
 **Features:**
 - YAML pattern definitions
 - Regex and literal matching
@@ -57,10 +61,17 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - Configurable limits
 - 314 LOC core
 
+**Current Coverage:**
+- ✅ Underconstrained assignments
+- ✅ Weak nullifiers
+- ✅ Missing range checks
+- ⚠️ Limited: Signal aliasing, non-unique witnesses, IsZero constraints, field overflow not yet covered
+
 **Test Results:**
-- 23/23 tests passing
+- 23/23 unit tests passing
 - 3 real vulnerabilities detected
-- 0 critical/high false positives on 2 safe circuits
+- 0 false positives on 2 safe circuits
+- Pattern library needs expansion for production use
 
 ## Installation
 
@@ -179,13 +190,14 @@ patterns:
     message: 'Unconstrained assignment detected'
     severity: high
 
-invariants:
-  - name: output_determinism
-    invariant_type: constraint
-    relation: "output == output"
-    oracle: must_hold
-    severity: critical
-    description: "Outputs must be deterministic"
+# Note: Invariant checking is aspirational/future functionality
+# invariants:
+#   - name: output_fully_constrained
+#     invariant_type: constraint
+#     relation: "rank(constraint_matrix) == num_signals - 1"
+#     oracle: must_hold
+#     severity: critical
+#     description: "Output signals must be fully constrained"
 ```
 
 ### Pattern Types
@@ -204,6 +216,8 @@ invariants:
 
 ## Pattern Library
 
+**Current Status: 3 Patterns (Proof-of-Concept)**
+
 Test suite results:
 
 | Vulnerability | Detected | Test File |
@@ -214,10 +228,22 @@ Test suite results:
 
 Run `./validate.sh` to verify.
 
-Pattern categories:
+**Covered:**
 - Underconstrained circuits
 - Nullifier issues  
 - Range violations
+
+**Not Yet Covered (Contributions Welcome):**
+- Signal aliasing
+- Non-unique witnesses
+- Missing IsZero constraints
+- Field arithmetic overflow
+- Merkle tree path validation
+- EdDSA signature malleability
+- Commitment scheme weaknesses
+- Proof malleability
+
+See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
 
 ## Use Cases
 
@@ -242,7 +268,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo install zkpm
+      - run: cargo install zkpm --version 0.1.0  # Pin version for reproducibility
       - run: zkpm patterns/critical.yaml circuits/main.circom
 ```
 
