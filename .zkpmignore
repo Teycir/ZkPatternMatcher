@@ -1,0 +1,21 @@
+# ZkPatternMatcher ignore patterns
+# Files matching these patterns will be skipped during scanning
+
+# Build artifacts
+target/
+*.o
+*.so
+*.a
+
+# Dependencies
+node_modules/
+vendor/
+
+# Test artifacts
+*.test
+coverage/
+
+# Large files
+*.bin
+*.dat
+*.db

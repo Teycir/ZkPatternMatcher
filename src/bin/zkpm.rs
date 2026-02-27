@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::Serialize;
 use std::path::PathBuf;
-use zk_pattern_matcher::{load_pattern_library, PatternMatcher, PatternMatch, Severity};
+use zk_pattern_matcher::{load_pattern_library, load_config, PatternMatcher, PatternMatch, Severity};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -34,14 +34,17 @@ impl Summary {
     }
 }
 
-fn severity_icon(severity: &Severity) -> &'static str {
-    match severity {
-        Severity::Critical => "🔴",
-        Severity::High => "🟠",
-        Severity::Medium => "🟡",
-        Severity::Low => "🔵",
-        Severity::Info => "ℹ️",
+fn severity_icon(severity: &Severity, show_icons: bool) -> String {
+    if !show_icons {
+        return String::new();
     }
+    match severity {
+        Severity::Critical => "🔴 ",
+        Severity::High => "🟠 ",
+        Severity::Medium => "🟡 ",
+        Severity::Low => "🔵 ",
+        Severity::Info => "ℹ️  ",
+    }.to_string()
 }
 
 fn print_usage() {
@@ -59,6 +62,7 @@ fn print_usage() {
 }
 
 fn main() -> Result<()> {
+    let config = load_config();
     let args: Vec<String> = std::env::args().collect();
     
     if args.len() < 2 {
@@ -66,7 +70,6 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
     
-    // Handle --help and --version
     if args[1] == "--help" || args[1] == "-h" {
         print_usage();
         return Ok(());
@@ -77,7 +80,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
     
-    let mut format = "text";
+    let mut format = config.output.default_format.as_str();
     let mut arg_offset = 1;
     
     if args[1] == "--format" && args.len() > 3 {
@@ -103,8 +106,8 @@ fn main() -> Result<()> {
             
             for pattern in &library.patterns {
                 let severity = pattern.severity.as_ref().unwrap_or(&Severity::Info);
-                println!("{} {} [{:?}] - {}", 
-                    severity_icon(severity),
+                println!("{}{} [{:?}] - {}", 
+                    severity_icon(severity, config.output.show_icons),
                     pattern.id, 
                     severity,
                     pattern.message
@@ -125,11 +128,11 @@ fn main() -> Result<()> {
             if format == "json" {
                 output_json(&matches)?;
             } else {
-                output_text(&matches)?;
+                output_text(&matches, config.output.show_icons)?;
             }
             
             let has_critical = matches.iter().any(|m| matches!(m.severity, Severity::Critical | Severity::High));
-            if has_critical {
+            if has_critical && config.output.fail_on_critical {
                 std::process::exit(1);
             }
             
@@ -147,7 +150,7 @@ fn output_json(matches: &[PatternMatch]) -> Result<()> {
     Ok(())
 }
 
-fn output_text(matches: &[PatternMatch]) -> Result<()> {
+fn output_text(matches: &[PatternMatch], show_icons: bool) -> Result<()> {
     if matches.is_empty() {
         println!("No patterns matched.");
         return Ok(());
@@ -156,7 +159,7 @@ fn output_text(matches: &[PatternMatch]) -> Result<()> {
     println!("Found {} matches:\n", matches.len());
     
     for m in matches {
-        println!("{} [{:?}] {}", severity_icon(&m.severity), m.severity, m.message);
+        println!("{}[{:?}] {}", severity_icon(&m.severity, show_icons), m.severity, m.message);
         println!("   Pattern: {}", m.pattern_id);
         println!("   Location: {}:{}", m.location.line, m.location.column);
         println!("   Matched: {}", m.location.matched_text);
