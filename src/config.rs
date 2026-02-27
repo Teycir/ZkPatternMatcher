@@ -1,7 +1,7 @@
 use serde::Deserialize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub limits: Limits,
@@ -31,13 +31,27 @@ pub struct Output {
     pub fail_on_critical: bool,
 }
 
-fn default_max_file_size() -> usize { 10485760 }
-fn default_max_pattern_file_size() -> usize { 1048576 }
-fn default_max_patterns() -> usize { 1000 }
-fn default_max_matches() -> usize { 10000 }
-fn default_format() -> String { "text".to_string() }
-fn default_show_icons() -> bool { true }
-fn default_fail_on_critical() -> bool { true }
+fn default_max_file_size() -> usize {
+    10485760
+}
+fn default_max_pattern_file_size() -> usize {
+    1048576
+}
+fn default_max_patterns() -> usize {
+    1000
+}
+fn default_max_matches() -> usize {
+    10000
+}
+fn default_format() -> String {
+    "text".to_string()
+}
+fn default_show_icons() -> bool {
+    true
+}
+fn default_fail_on_critical() -> bool {
+    true
+}
 
 impl Default for Limits {
     fn default() -> Self {
@@ -60,21 +74,14 @@ impl Default for Output {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            limits: Limits::default(),
-            output: Output::default(),
-        }
-    }
-}
-
 pub fn load_config() -> Config {
     let paths = [
         PathBuf::from(".zkpm.toml"),
-        dirs::home_dir().map(|h| h.join(".zkpm/config.toml")).unwrap_or_default(),
+        dirs::home_dir()
+            .map(|h| h.join(".zkpm/config.toml"))
+            .unwrap_or_default(),
     ];
-    
+
     for path in &paths {
         if let Ok(content) = std::fs::read_to_string(path) {
             if let Ok(config) = toml::from_str(&content) {
@@ -82,16 +89,18 @@ pub fn load_config() -> Config {
             }
         }
     }
-    
+
     Config::default()
 }
 
 pub fn load_ignore_patterns() -> Vec<String> {
     let paths = [
         PathBuf::from(".zkpmignore"),
-        dirs::home_dir().map(|h| h.join(".zkpm/ignore")).unwrap_or_default(),
+        dirs::home_dir()
+            .map(|h| h.join(".zkpm/ignore"))
+            .unwrap_or_default(),
     ];
-    
+
     for path in &paths {
         if let Ok(content) = std::fs::read_to_string(path) {
             return content
@@ -101,6 +110,6 @@ pub fn load_ignore_patterns() -> Vec<String> {
                 .collect();
         }
     }
-    
+
     vec![]
 }

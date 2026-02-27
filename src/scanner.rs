@@ -1,6 +1,6 @@
+use crate::{PatternMatch, PatternMatcher};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
-use crate::{PatternMatcher, PatternMatch};
 
 pub struct Scanner {
     matcher: PatternMatcher,
@@ -9,7 +9,10 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(matcher: PatternMatcher, ignore_patterns: Vec<String>) -> Self {
-        Self { matcher, ignore_patterns }
+        Self {
+            matcher,
+            ignore_patterns,
+        }
     }
 
     pub fn scan_file(&self, path: &Path) -> Result<Vec<PatternMatch>> {
@@ -22,7 +25,11 @@ impl Scanner {
         Ok(results)
     }
 
-    fn scan_recursive_impl(&self, path: &Path, results: &mut Vec<(PathBuf, Vec<PatternMatch>)>) -> Result<()> {
+    fn scan_recursive_impl(
+        &self,
+        path: &Path,
+        results: &mut Vec<(PathBuf, Vec<PatternMatch>)>,
+    ) -> Result<()> {
         if self.should_ignore(path) {
             return Ok(());
         }
@@ -49,7 +56,9 @@ impl Scanner {
                 path_str.contains(pattern)
             } else if pattern.contains('*') {
                 let re = pattern.replace("*", ".*");
-                regex::Regex::new(&re).map(|r| r.is_match(&path_str)).unwrap_or(false)
+                regex::Regex::new(&re)
+                    .map(|r| r.is_match(&path_str))
+                    .unwrap_or(false)
             } else {
                 path_str.contains(pattern)
             }

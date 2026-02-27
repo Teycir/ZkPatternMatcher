@@ -1,7 +1,7 @@
+use crate::{sarif, PatternMatch, Severity};
 use anyhow::Result;
 use serde::Serialize;
 use std::path::PathBuf;
-use crate::{PatternMatch, Severity, sarif};
 
 #[derive(Serialize)]
 pub struct JsonOutput {
@@ -23,11 +23,26 @@ impl Summary {
     pub fn from_matches(matches: &[PatternMatch]) -> Self {
         Self {
             total: matches.len(),
-            critical: matches.iter().filter(|m| m.severity == Severity::Critical).count(),
-            high: matches.iter().filter(|m| m.severity == Severity::High).count(),
-            medium: matches.iter().filter(|m| m.severity == Severity::Medium).count(),
-            low: matches.iter().filter(|m| m.severity == Severity::Low).count(),
-            info: matches.iter().filter(|m| m.severity == Severity::Info).count(),
+            critical: matches
+                .iter()
+                .filter(|m| m.severity == Severity::Critical)
+                .count(),
+            high: matches
+                .iter()
+                .filter(|m| m.severity == Severity::High)
+                .count(),
+            medium: matches
+                .iter()
+                .filter(|m| m.severity == Severity::Medium)
+                .count(),
+            low: matches
+                .iter()
+                .filter(|m| m.severity == Severity::Low)
+                .count(),
+            info: matches
+                .iter()
+                .filter(|m| m.severity == Severity::Info)
+                .count(),
         }
     }
 }
@@ -74,7 +89,8 @@ impl OutputFormatter {
             Severity::Medium => "🟡 ",
             Severity::Low => "🔵 ",
             Severity::Info => "ℹ️  ",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn output_text(&self, matches: &[PatternMatch]) -> Result<()> {
@@ -86,7 +102,12 @@ impl OutputFormatter {
         println!("Found {} matches:\n", matches.len());
 
         for m in matches {
-            println!("{}[{:?}] {}", self.severity_icon(&m.severity), m.severity, m.message);
+            println!(
+                "{}[{:?}] {}",
+                self.severity_icon(&m.severity),
+                m.severity,
+                m.message
+            );
             println!("   Pattern: {}", m.pattern_id);
             println!("   Location: {}:{}", m.location.line, m.location.column);
             println!("   Matched: {}", m.location.matched_text);
@@ -108,7 +129,12 @@ impl OutputFormatter {
         for (path, matches) in results {
             println!("{}:", path.display());
             for m in matches {
-                println!("  {}[{:?}] {}", self.severity_icon(&m.severity), m.severity, m.message);
+                println!(
+                    "  {}[{:?}] {}",
+                    self.severity_icon(&m.severity),
+                    m.severity,
+                    m.message
+                );
                 println!("     Pattern: {}", m.pattern_id);
                 println!("     Location: {}:{}", m.location.line, m.location.column);
                 println!();
@@ -128,7 +154,8 @@ impl OutputFormatter {
     }
 
     fn output_json_recursive(&self, results: &[(PathBuf, Vec<PatternMatch>)]) -> Result<()> {
-        let all_matches: Vec<PatternMatch> = results.iter()
+        let all_matches: Vec<PatternMatch> = results
+            .iter()
             .flat_map(|(_, matches)| matches.clone())
             .collect();
         self.output_json(&all_matches)
@@ -141,10 +168,12 @@ impl OutputFormatter {
     }
 
     fn output_sarif_recursive(&self, results: &[(PathBuf, Vec<PatternMatch>)]) -> Result<()> {
-        let all_matches: Vec<PatternMatch> = results.iter()
+        let all_matches: Vec<PatternMatch> = results
+            .iter()
             .flat_map(|(_, matches)| matches.clone())
             .collect();
-        let file_path = results.first()
+        let file_path = results
+            .first()
             .map(|(p, _)| p.to_string_lossy().to_string())
             .unwrap_or_default();
         self.output_sarif(&all_matches, &file_path)

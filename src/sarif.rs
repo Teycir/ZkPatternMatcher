@@ -1,5 +1,5 @@
-use serde::Serialize;
 use crate::{PatternMatch, Severity};
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct SarifReport {
@@ -77,8 +77,9 @@ fn severity_to_sarif_level(severity: &Severity) -> &'static str {
 }
 
 pub fn to_sarif(matches: &[PatternMatch], file_path: &str) -> SarifReport {
-    let results: Vec<SarifResult> = matches.iter().map(|m| {
-        SarifResult {
+    let results: Vec<SarifResult> = matches
+        .iter()
+        .map(|m| SarifResult {
             rule_id: m.pattern_id.clone(),
             level: severity_to_sarif_level(&m.severity).to_string(),
             message: SarifMessage {
@@ -95,8 +96,8 @@ pub fn to_sarif(matches: &[PatternMatch], file_path: &str) -> SarifReport {
                     },
                 },
             }],
-        }
-    }).collect();
+        })
+        .collect();
 
     SarifReport {
         version: "2.1.0".to_string(),
