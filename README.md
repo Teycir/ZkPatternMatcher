@@ -300,7 +300,27 @@ See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
 
 ## Contributing
 
-Contributions welcome. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+### Adding New Patterns (Easy!)
+
+**3-Step Process:**
+
+1. **Copy template**: `cp patterns/TEMPLATE.yaml patterns/your_pattern.yaml`
+2. **Fill in details**: Edit the YAML with your vulnerability pattern
+3. **Test it**: `zkpm validate patterns/your_pattern.yaml`
+
+See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) for detailed instructions and examples.
+
+**Quick Example:**
+```yaml
+patterns:
+  - id: your_vulnerability
+    kind: regex
+    pattern: 'vulnerable_code_pattern'
+    message: 'What this detects'
+    severity: high
+```
+
+All contributions welcome. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for full guidelines.
 
 ## Pattern Sources
 

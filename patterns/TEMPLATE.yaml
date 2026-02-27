@@ -1,0 +1,36 @@
+# Pattern Template
+# Copy this file and fill in your vulnerability pattern
+
+patterns:
+  - id: your_pattern_id_here
+    kind: regex  # or 'literal'
+    pattern: 'your_regex_or_literal_pattern'
+    message: 'Brief description of the vulnerability'
+    severity: high  # critical, high, medium, low, or info
+    
+    # Optional: Add context about the vulnerability
+    # description: |
+    #   Detailed explanation of why this is a vulnerability
+    #   and what attackers could exploit
+    
+    # Optional: Add references
+    # references:
+    #   - https://zkbugs.com/vulnerability-id
+    #   - https://github.com/project/security-advisory
+
+# Optional: Add invariants for more complex checks
+# invariants:
+#   - name: invariant_name
+#     invariant_type: constraint  # or 'property'
+#     relation: "expected_condition"
+#     oracle: must_hold  # or 'should_hold', 'must_not_hold'
+#     severity: critical
+#     description: "What this invariant checks"
+
+# Example: Underconstrained assignment pattern
+# patterns:
+#   - id: unconstrained_assignment
+#     kind: regex
+#     pattern: '<--'
+#     message: 'Unconstrained assignment operator detected'
+#     severity: critical
