@@ -2,7 +2,7 @@ patterns:
   # Pattern 1: Commitment without randomness (deterministic commitment)
   - id: deterministic_commitment
     kind: regex
-    pattern: '\b(?:commit|commitment|Commit)\w*\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)'
+    pattern: '(?:\b(?:commit|commitment|Commit)\w*\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)|\b(?:commit|commitment|Commit)\w*\s*<==\s*\w+\s*;)'
     message: >
       HIGH: Commitment appears to use a single-input hash (no blinding factor).
       Deterministic commitments are not hiding — an observer can brute-force
@@ -13,7 +13,7 @@ patterns:
   # Pattern 2: Nullifier derived without secret
   - id: nullifier_without_secret
     kind: regex
-    pattern: '\b(?:nullifier|nul)\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)'
+    pattern: '(?:\b(?:nullifier|nul)\s*<==\s*(?:Poseidon|MiMC|Pedersen)\s*\(\s*1\s*\)|\b(?:nullifier|nul)\s*<==\s*\w+\s*;)'
     message: >
       CRITICAL: Nullifier derived from single-input hash. A nullifier must
       incorporate a secret (e.g., private key or randomness) to prevent
@@ -56,7 +56,7 @@ patterns:
 
   # Pattern 6: Missing === 1 on IsEqual output
   - id: isequal_out_not_constrained
-    kind: regex
+    kind: fancyregex
     pattern: '\.out\s*<==\s*(?!\s*1\b)[^;]+'
     message: >
       MEDIUM: Component output assigned via <== to a non-literal value.

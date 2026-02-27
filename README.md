@@ -16,7 +16,7 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
- **Status**: Stable scanner and CLI with 3 real-vulnerability validated patterns (+ 2 validated developer markers) and an expanded pattern library (47 pattern entries across 11 non-template YAML files, many still being validated). See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for full transparency on current capabilities.
+**Status**: Stable scanner and CLI supporting `regex`, `fancyregex`, `literal`, and optional two-pass semantic checks (`--semantic`). Validation includes a baseline pack (3 vulnerability patterns + 2 developer markers) and an automated real-world matrix (16 vulnerable fixtures + 10 safe controls). See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for full transparency on current capabilities.
 
 ## Table of Contents
 
@@ -55,9 +55,9 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Status: Stable** - Core baseline validation is stable (3 validated vulnerability patterns), and the automated real-world matrix currently covers 8 vulnerable fixtures (+ 4 safe controls).
+**Status: Stable** - Baseline validation is stable (3 vulnerability patterns + 2 markers), and the automated real-world matrix currently covers 16 vulnerable fixtures (+ 10 safe controls).
 
-**Core Validated Patterns:**
+**Baseline Validated Patterns:**
 - ✅ Underconstrained assignments (`<--` operator)
 - ✅ Weak nullifier assignments
 - ✅ Missing range checks (via comment detection)
@@ -67,16 +67,16 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - 🔍 `MISSING:` constraint markers
 
 **⚠️ Important Limitations:**
-- Regex/literal matching is syntax-based by default; this can match markers inside comments/strings
+- Matching engines include regex/fancyregex/literal, but default scanning is syntax-first and can match markers in comments/strings
 - Use `--semantic` to enable two-pass cross-line checks and reduce false positives
 - Invariant system is aspirational (YAML parsed but not enforced yet; runtime warning emitted)
-- Real-world corpus is expanding; automated matrix currently includes 8 vulnerable fixtures + 4 safe controls
+- Real-world corpus is expanding; automated matrix currently includes 16 vulnerable fixtures + 10 safe controls
 - See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for complete transparency
 
 **Test Results:**
 - `cargo test -q` passes locally (39 passed, 1 ignored integration test)
-- 8 real-world vulnerability fixtures validated in the automated matrix (+ 4 safe controls)
-- 0 high/critical false positives on 4 safe controls in the matrix
+- 16 real-world vulnerability fixtures validated in the automated matrix (+ 10 safe controls)
+- 0 high/critical false positives on 10 safe controls in the matrix
 - Pattern files: `patterns/real_vulnerabilities.yaml` (5 entries: 3 patterns + 2 markers)
 
 ## Installation
@@ -115,10 +115,10 @@ Configurable limits via `.zkpm.toml` (see `.zkpm.toml.example`):
 ✓ ALL VALIDATION TESTS PASSED
 
 Summary:
-  - 29 unit + integration tests passed
-  - 3 real vulnerabilities detected
-  - 0 false positives on safe circuits
-  - Pattern library: 3 core + 2 markers
+  - Rust unit + integration suites passed
+  - Real-world matrix: 16 vulnerable fixtures + 10 safe controls
+  - 0 high/critical false positives on the safe controls
+  - Pattern packs include baseline + extended libraries
 ```
 
 ### 1. Scan a Real Vulnerable Circuit
@@ -227,6 +227,7 @@ See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-syst
 ### Pattern Types
 
 - **regex**: Regular expression matching
+- **fancyregex**: Advanced regex matching (supports backreferences/lookaround)
 - **literal**: Exact string matching
 - **ast**: Reserved schema kind; currently rejected at load time with an explicit error
 
@@ -240,11 +241,10 @@ See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-syst
 
 ## Pattern Library
 
-**Current Status: Stable core baseline (3 validated vulnerability patterns) + expanded real-world matrix coverage (8 vulnerable fixtures, 4 safe controls)**
+**Current Status: Stable baseline + expanding matrix validation (16 vulnerable fixtures, 10 safe controls)**
+⚠️ **Transparency Note**: Baseline coverage is deepest in `real_vulnerabilities.yaml`. Extended packs are validated per-fixture via the matrix and should still be reviewed as heuristic detectors.
 
-⚠️ **Transparency Note**: The core engine is stable. The pattern library is intentionally quality-gated, and many extended patterns are still under validation.
-
-Validated patterns:
+Baseline validated patterns (`patterns/real_vulnerabilities.yaml`):
 
 | Pattern | Status | Test File |
 |---------|--------|----------|
@@ -258,25 +258,43 @@ Developer markers (not vulnerability patterns):
 
 Run `./validate.sh` to verify.
 
+Matrix-validated extended detections:
+
+| Pattern Pack | Expected Detection(s) | Fixture |
+|---------|--------|----------|
+| `patterns/signal_aliasing.yaml` | `intermediate_array_unconstrained` | `tests/real_vulnerabilities/signal_aliasing.circom` |
+| `patterns/unchecked_division.yaml` | `division_operator_detected` | `tests/real_vulnerabilities/unchecked_division.circom` |
+| `patterns/production.yaml` | `vulnerability_marker` | `tests/real_vulnerabilities/nullifier_collision_real.circom` |
+| `patterns/production.yaml` | `vulnerability_marker` | `tests/real_vulnerabilities/underconstrained_merkle_real.circom` |
+| `patterns/array_bounds.yaml` | `signal_indexed_array_access` | `tests/real_vulnerabilities/array_no_bounds.circom` |
+| `patterns/array_bounds.yaml` | `signal_dependent_loop_bound` | `tests/real_vulnerabilities/unbounded_loop.circom` |
+| `patterns/equality_check.yaml` | `comparison_instead_of_constraint` | `tests/real_vulnerabilities/equality_no_constraint.circom` |
+| `patterns/merkle_path.yaml` | `merkle_root_comparison_not_constraint` | `tests/real_vulnerabilities/merkle_path/unconstrained_direction_vuln.circom` |
+| `patterns/commitment_soundness.yaml` | `deterministic_commitment` | `tests/real_vulnerabilities/commitment_soundness/deterministic_commit_vuln.circom` |
+| `patterns/commitment_soundness.yaml` | `nullifier_without_secret` | `tests/real_vulnerabilities/commitment_soundness/nullifier_no_secret_vuln.circom` |
+| `patterns/public_input_validation.yaml` | `public_input_declared` | `tests/real_vulnerabilities/nullifier_collision_real.circom` |
+| `patterns/missing_iszero.yaml` | `direct_zero_comparison_branch` | `tests/real_vulnerabilities/missing_iszero.circom` |
+
 **Coverage Notes** (see [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md)):
-- `patterns/real_vulnerabilities.yaml` is the only fully validated library against real vulnerable circuits.
-- Additional rule sets are implemented but mostly unvalidated and should be treated as heuristics until validated.
+- `patterns/real_vulnerabilities.yaml` remains the strongest baseline pack with full end-to-end validation coverage.
+- Extended packs now have targeted matrix tests for specific real-world fixtures.
+- Several additional packs are still heuristic/unvalidated and should be treated accordingly.
 
 **Pattern Files:**
 - `patterns/real_vulnerabilities.yaml` - 3 validated patterns + 2 developer markers
-- `patterns/production.yaml` - curated production-focused set with metadata
+- `patterns/production.yaml` - curated production-focused set with targeted matrix validation
 - `patterns/underconstrained.yaml` - focused underconstrained assignment rules
-- `patterns/signal_aliasing.yaml` - ⚠️ NEW: Signal aliasing detection (unvalidated)
-- `patterns/missing_iszero.yaml` - ⚠️ NEW: IsZero component checks (unvalidated)
-- `patterns/unchecked_division.yaml` - ⚠️ NEW: Division by zero detection (unvalidated)
-- `patterns/array_bounds.yaml` - ⚠️ NEW: Array bounds checking (unvalidated)
-- `patterns/equality_check.yaml` - ⚠️ NEW: Equality operator misuse (unvalidated)
-- `patterns/merkle_path.yaml` - ⚠️ NEW: Merkle path validation checks (unvalidated)
-- `patterns/commitment_soundness.yaml` - ⚠️ NEW: Commitment checks (unvalidated)
-- `patterns/public_input_validation.yaml` - ⚠️ NEW: Public input validation checks (unvalidated)
+- `patterns/signal_aliasing.yaml` - Signal aliasing detection (targeted matrix validation)
+- `patterns/missing_iszero.yaml` - IsZero-related checks (targeted matrix validation)
+- `patterns/unchecked_division.yaml` - Division by zero detection (targeted matrix validation)
+- `patterns/array_bounds.yaml` - Array bounds checking (targeted matrix validation)
+- `patterns/equality_check.yaml` - Equality operator misuse (targeted matrix validation)
+- `patterns/merkle_path.yaml` - Merkle path validation checks (targeted matrix validation)
+- `patterns/commitment_soundness.yaml` - Commitment checks (targeted matrix validation)
+- `patterns/public_input_validation.yaml` - Public input validation checks (targeted matrix validation)
 - `patterns/TEMPLATE.yaml` - Template for new patterns
 
-⚠️ Only `real_vulnerabilities.yaml` is validated against real test circuits. New patterns in separate files are awaiting validation. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
+⚠️ `real_vulnerabilities.yaml` has the deepest validation coverage. Some extended packs now have targeted real-world matrix validation, while others are still awaiting broader validation. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
 
 See [docs/patterns/PATTERN_GUIDE.md](docs/patterns/PATTERN_GUIDE.md) to contribute patterns.
 

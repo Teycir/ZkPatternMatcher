@@ -4,7 +4,9 @@
 
 This document catalogs all regex patterns currently implemented in ZkPatternMatcher for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-**Transparency Note**: The scanner is stable and includes **3 validated vulnerability patterns** in the baseline set. Additional pattern files exist, but most are not yet validated against real vulnerable circuits.
+**Transparency Note**: The scanner is stable and includes:
+- Baseline validation: **3 vulnerability patterns + 2 developer markers**
+- Integration-test matrix validation: **16 vulnerable fixtures + 10 safe controls** (see `tests/real_world_validation_matrix_tests.rs`)
 
 ## Implemented Patterns (in `patterns/real_vulnerabilities.yaml`)
 
@@ -47,38 +49,53 @@ This document catalogs all regex patterns currently implemented in ZkPatternMatc
 **Purpose:** Detect incomplete circuit implementations  
 **Severity:** High
 
-## Additional Pattern Files (Implemented, Awaiting Validation)
+## Additional Pattern Files (Targeted Matrix Validation)
 
-The following patterns have been implemented but not yet validated against real vulnerable circuits:
+The following pattern packs now have targeted fixture-based validation in the integration matrix:
 
-### Signal Aliasing (`patterns/signal_aliasing.yaml`)
+### Signal Aliasing (`patterns/signal_aliasing.yaml`) ✅
 - Component input aliasing detection
 - Intermediate array unconstrained assignments
-- Status: ⚠️ Implemented, needs validation
+- Status: Targeted matrix validation
 
-### Missing IsZero (`patterns/missing_iszero.yaml`)
+### Missing IsZero (`patterns/missing_iszero.yaml`) ✅
 - Unconstrained boolean selector detection
 - Binary constraint pattern recognition
 - IsZero component usage tracking
-- Status: ⚠️ Implemented, needs validation
+- Status: Targeted matrix validation
 
-### Unchecked Division (`patterns/unchecked_division.yaml`)
+### Unchecked Division (`patterns/unchecked_division.yaml`) ✅
 - Division operator detection
 - Signal as denominator detection
 - Explicit inverse() call detection
-- Status: ⚠️ Implemented, needs validation
+- Status: Targeted matrix validation
 
-### Array Bounds (`patterns/array_bounds.yaml`)
+### Array Bounds (`patterns/array_bounds.yaml`) ✅
 - Signal-indexed array access detection
 - Signal-dependent loop bound detection
 - LessThan component usage tracking
-- Status: ⚠️ Implemented, needs validation
+- Status: Targeted matrix validation
 
-### Equality Check (`patterns/equality_check.yaml`)
+### Equality Check (`patterns/equality_check.yaml`) ✅
 - Comparison operator (==) vs constraint (===) detection
 - Assignment operator (=) misuse detection
 - Separate assignment and constraint pattern detection
-- Status: ⚠️ Implemented, needs validation
+- Status: Targeted matrix validation
+
+### Merkle Path (`patterns/merkle_path.yaml`) ✅
+- Root comparison misuse checks
+- Selector/path-direction integrity checks
+- Status: Targeted matrix validation
+
+### Commitment Soundness (`patterns/commitment_soundness.yaml`) ✅
+- Deterministic commitment checks
+- Nullifier-without-secret checks
+- Status: Targeted matrix validation
+
+### Public Input Validation (`patterns/public_input_validation.yaml`) ✅
+- Public-input declaration/usage heuristics
+- Hash-input validation heuristics
+- Status: Targeted matrix validation
 
 See individual pattern files in `patterns/` directory for detailed documentation.
 
@@ -104,11 +121,14 @@ Each pattern targets specific vulnerability classes found in real ZK circuits.
 | Missing Range Check | ⚠️ | ✅ | Literal match only |
 | BUG Marker | ✅ | ✅ | Developer marker |
 | MISSING Marker | ✅ | ✅ | Developer marker |
-| Signal Aliasing | ⚠️ | ⚠️ | Implemented, unvalidated |
-| Missing IsZero | ⚠️ | ⚠️ | Implemented, unvalidated |
-| Unchecked Division | ⚠️ | ⚠️ | Implemented, unvalidated |
-| Array Bounds | ⚠️ | ⚠️ | Implemented, unvalidated |
-| Equality Check | ⚠️ | ⚠️ | Implemented, unvalidated |
+| Signal Aliasing | ✅ | ✅ | Targeted matrix validation |
+| Missing IsZero | ✅ | ✅ | Targeted matrix validation |
+| Unchecked Division | ✅ | ✅ | Targeted matrix validation |
+| Array Bounds | ✅ | ✅ | Targeted matrix validation |
+| Equality Check | ✅ | ✅ | Targeted matrix validation |
+| Merkle Path | ✅ | ✅ | Targeted matrix validation |
+| Commitment Soundness | ✅ | ✅ | Targeted matrix validation |
+| Public Input Validation | ✅ | ✅ | Targeted matrix validation |
 
 ## Usage Examples
 
@@ -138,11 +158,11 @@ We actively seek pattern contributions! See [PATTERN_GUIDE.md](../patterns/PATTE
 
 ## Current Limitations
 
-- **Small Validated Library**: Only 3 vulnerability patterns are validated against real vulnerable circuits
+- **Two-tier Validation**: Baseline set (3 vulnerability patterns) plus fixture-level matrix validation for extended packs
 - **Syntax-First Matching**: Default regex/literal scans are line-based and can match comments/strings
 - **Limited Semantic Coverage**: `--semantic` adds heuristic cross-line checks, not full data-flow/AST analysis
 - **No Invariant Enforcement**: Invariant YAML blocks are parsed but not enforced (warnings are emitted)
-- **Limited Test Corpus**: 3 vulnerable + 2 safe circuits
+- **Still-Limited Corpus**: 16 vulnerable fixtures + 10 safe controls is better, but still small vs ecosystem diversity
 
 See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency on current capabilities.
 
@@ -157,7 +177,7 @@ See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency on current capabi
 
 - **Scan Speed:** ~1000 lines/second (untested on large codebases)
 - **Memory Usage:** <10MB for typical circuits
-- **False Positive Rate:** 0% on 2 safe test circuits (small sample)
-- **Detection Rate:** 100% on 3 vulnerable test circuits (small sample)
+- **False Positive Gate:** 0 high/critical findings on 10 safe controls (matrix sample)
+- **Detection Gate:** Expected pattern IDs hit across 16 vulnerable fixtures (matrix sample)
 
 ⚠️ Performance metrics are estimates based on small test corpus. Real-world performance may vary.

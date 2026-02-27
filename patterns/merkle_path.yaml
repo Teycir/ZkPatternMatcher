@@ -25,7 +25,7 @@ patterns:
   # Pattern 3: Root comparison using == instead of ===
   - id: merkle_root_comparison_not_constraint
     kind: regex
-    pattern: '\b(?:root|merkleRoot|computedRoot)\s*==\s*\w+'
+    pattern: '\b(?:root|merkleRoot|computedRoot)\s*==\s*\w+(?:\[[^\]]+\])?|\b\w+(?:\[[^\]]+\])?\s*==\s*(?:root|merkleRoot|computedRoot)\b'
     message: >
       CRITICAL: Merkle root compared with == (boolean comparison) instead of
       === (circuit constraint). The == operator does not add any constraint —

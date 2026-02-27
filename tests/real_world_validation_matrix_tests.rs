@@ -75,6 +75,57 @@ fn real_world_vulnerability_matrix_hits_expected_patterns() -> anyhow::Result<()
             circuit_file: "tests/real_vulnerabilities/underconstrained_merkle_real.circom",
             expected_pattern_ids: &["vulnerability_marker"],
         },
+        RealWorldCase {
+            name: "array-bounds-indexed-access",
+            pattern_file: "patterns/array_bounds.yaml",
+            circuit_file: "tests/real_vulnerabilities/array_no_bounds.circom",
+            expected_pattern_ids: &["signal_indexed_array_access"],
+        },
+        RealWorldCase {
+            name: "array-bounds-loop-bound",
+            pattern_file: "patterns/array_bounds.yaml",
+            circuit_file: "tests/real_vulnerabilities/unbounded_loop.circom",
+            expected_pattern_ids: &["signal_dependent_loop_bound"],
+        },
+        RealWorldCase {
+            name: "equality-misuse",
+            pattern_file: "patterns/equality_check.yaml",
+            circuit_file: "tests/real_vulnerabilities/equality_no_constraint.circom",
+            expected_pattern_ids: &["comparison_instead_of_constraint"],
+        },
+        RealWorldCase {
+            name: "merkle-root-comparison",
+            pattern_file: "patterns/merkle_path.yaml",
+            circuit_file:
+                "tests/real_vulnerabilities/merkle_path/unconstrained_direction_vuln.circom",
+            expected_pattern_ids: &["merkle_root_comparison_not_constraint"],
+        },
+        RealWorldCase {
+            name: "commitment-deterministic",
+            pattern_file: "patterns/commitment_soundness.yaml",
+            circuit_file:
+                "tests/real_vulnerabilities/commitment_soundness/deterministic_commit_vuln.circom",
+            expected_pattern_ids: &["deterministic_commitment"],
+        },
+        RealWorldCase {
+            name: "commitment-nullifier-no-secret",
+            pattern_file: "patterns/commitment_soundness.yaml",
+            circuit_file:
+                "tests/real_vulnerabilities/commitment_soundness/nullifier_no_secret_vuln.circom",
+            expected_pattern_ids: &["nullifier_without_secret"],
+        },
+        RealWorldCase {
+            name: "public-input-declared",
+            pattern_file: "patterns/public_input_validation.yaml",
+            circuit_file: "tests/real_vulnerabilities/nullifier_collision_real.circom",
+            expected_pattern_ids: &["public_input_declared"],
+        },
+        RealWorldCase {
+            name: "missing-iszero-branch",
+            pattern_file: "patterns/missing_iszero.yaml",
+            circuit_file: "tests/real_vulnerabilities/missing_iszero.circom",
+            expected_pattern_ids: &["direct_zero_comparison_branch"],
+        },
     ];
 
     for case in &cases {
@@ -118,6 +169,36 @@ fn safe_controls_have_no_high_or_critical_findings() -> anyhow::Result<()> {
             name: "safe-merkle-production-pack",
             pattern_file: "patterns/production.yaml",
             circuit_file: "tests/safe_circuits/safe_merkle.circom",
+        },
+        SafeControlCase {
+            name: "safe-array-bounds-pack",
+            pattern_file: "patterns/array_bounds.yaml",
+            circuit_file: "tests/safe_circuits/safe_multiplier.circom",
+        },
+        SafeControlCase {
+            name: "safe-equality-pack",
+            pattern_file: "patterns/equality_check.yaml",
+            circuit_file: "tests/safe_circuits/safe_multiplier.circom",
+        },
+        SafeControlCase {
+            name: "safe-merkle-path-pack",
+            pattern_file: "patterns/merkle_path.yaml",
+            circuit_file: "tests/real_vulnerabilities/merkle_path/merkle_safe.circom",
+        },
+        SafeControlCase {
+            name: "safe-commitment-pack",
+            pattern_file: "patterns/commitment_soundness.yaml",
+            circuit_file: "tests/real_vulnerabilities/commitment_soundness/commitment_safe.circom",
+        },
+        SafeControlCase {
+            name: "safe-public-input-pack",
+            pattern_file: "patterns/public_input_validation.yaml",
+            circuit_file: "tests/safe_circuits/safe_multiplier.circom",
+        },
+        SafeControlCase {
+            name: "safe-missing-iszero-pack",
+            pattern_file: "patterns/missing_iszero.yaml",
+            circuit_file: "tests/safe_circuits/safe_multiplier.circom",
         },
     ];
 

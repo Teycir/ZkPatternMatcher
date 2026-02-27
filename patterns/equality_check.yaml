@@ -3,7 +3,7 @@ patterns:
   # Detects: signal == value (comparison, not constraint)
   - id: comparison_instead_of_constraint
     kind: regex
-    pattern: '\w+\s*==\s*\w+\s*;'
+    pattern: '\b\w+(?:\[[^\]]+\])?\s*==\s*\w+(?:\[[^\]]+\])?'
     message: >
       CRITICAL: Double equals (==) detected. In Circom, == is a comparison
       operator that returns a boolean, NOT a constraint. Use === for
@@ -59,7 +59,7 @@ patterns:
 
 invariants:
   - name: no_comparison_operators
-    invariant_type: syntax
+    invariant_type: constraint
     relation: "no_double_equals_in_constraints"
     oracle: must_hold
     severity: critical

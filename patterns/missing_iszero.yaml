@@ -1,4 +1,16 @@
 patterns:
+  # Pattern: Branching on x == 0 instead of IsZero component
+  # Detects: if (x == 0) { ... }
+  - id: direct_zero_comparison_branch
+    kind: regex
+    pattern: 'if\s*\(\s*\w+\s*==\s*0\s*\)'
+    message: >
+      HIGH: Direct `== 0` branching detected. In Circom, prefer IsZero to
+      enforce zero-check semantics with explicit constraints. Branching on a
+      comparison without a proper IsZero/constraint pattern can hide missing
+      constraints and lead to unsound logic.
+    severity: high
+
   # Pattern: Mux-style selector without binary constraint
   # Detects: out <== b * x + (1 - b) * y (common mux pattern)
   - id: unconstrained_boolean_selector
@@ -34,7 +46,7 @@ patterns:
 
 invariants:
   - name: equality_uses_iszero
-    invariant_type: property
+    invariant_type: constraint
     relation: "equality_check_uses_iszero_template"
     oracle: should_hold
     severity: high

@@ -2,7 +2,7 @@ patterns:
   # Pattern 1: Public signal declared but never referenced in a constraint
   - id: public_input_declared
     kind: regex
-    pattern: '^\s*signal\s+input\s+(?!private\b)\w+'
+    pattern: '^\s*signal\s+input\s+\w+'
     message: >
       INFO: Public input signal declared. Verify this signal is used in at
       least one constraint (=== or <==). A public input that is declared but

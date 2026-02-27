@@ -2,7 +2,7 @@ patterns:
   # Pattern: Array indexed by non-literal (signal or variable)
   # Detects: arr[signal] where signal is not a compile-time constant
   - id: signal_indexed_array_access
-    kind: regex
+    kind: fancyregex
     pattern: '\w+\[(?!\s*\d+\s*\])\s*\w+\s*\]'
     message: >
       MEDIUM: Array accessed with a non-literal index. If the index is a
@@ -16,7 +16,7 @@ patterns:
   # Pattern: For-loop with non-constant bound
   # Detects: for (var i = 0; i < signal; i++)
   - id: signal_dependent_loop_bound
-    kind: regex
+    kind: fancyregex
     pattern: 'for\s*\(\s*var\s+\w+\s*=\s*\d+\s*;\s*\w+\s*<\s*(?!\d+)[a-zA-Z_]\w*\s*;'
     message: >
       HIGH: Loop bound depends on a non-literal value. If the loop bound is

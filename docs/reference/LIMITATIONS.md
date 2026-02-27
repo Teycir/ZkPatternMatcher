@@ -4,22 +4,22 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Pattern Coverage (Critical)
 
-**Current State**: 3 validated vulnerability patterns, plus multiple additional pattern files that are implemented but mostly unvalidated.
+**Current State**: Baseline validation covers 3 vulnerability patterns, and integration-test matrix coverage now validates extended packs across 16 vulnerable fixtures + 10 safe controls.
 
 **Validated Patterns** (in `real_vulnerabilities.yaml`):
 - ✅ Underconstrained assignments (`<--` operator)
 - ✅ Weak nullifier assignments
 - ✅ Missing range checks (via comment detection)
 
-**Implemented - Awaiting Validation** (separate YAML files):
-- ⚠️ Signal aliasing attacks (`signal_aliasing.yaml`)
-- ⚠️ Missing IsZero constraint checks (`missing_iszero.yaml`)
-- ⚠️ Unchecked division (`unchecked_division.yaml`)
-- ⚠️ Array bounds checks (`array_bounds.yaml`)
-- ⚠️ Equality operator misuse (`equality_check.yaml`)
-- ⚠️ Merkle path checks (`merkle_path.yaml`)
-- ⚠️ Commitment soundness checks (`commitment_soundness.yaml`)
-- ⚠️ Public input validation checks (`public_input_validation.yaml`)
+**Targeted Matrix-Validated Extended Packs** (fixture-level):
+- ✅ Signal aliasing attacks (`signal_aliasing.yaml`)
+- ✅ Missing IsZero constraint checks (`missing_iszero.yaml`)
+- ✅ Unchecked division (`unchecked_division.yaml`)
+- ✅ Array bounds checks (`array_bounds.yaml`)
+- ✅ Equality operator misuse (`equality_check.yaml`)
+- ✅ Merkle path checks (`merkle_path.yaml`)
+- ✅ Commitment soundness checks (`commitment_soundness.yaml`)
+- ✅ Public input validation checks (`public_input_validation.yaml`)
 
 **Still Missing Coverage**:
 - Field arithmetic overflow
@@ -31,7 +31,7 @@ This document transparently lists current limitations and areas for improvement.
 - Trusted setup vulnerabilities
 - Non-unique witness generation
 
-**Impact**: New patterns expand coverage significantly but require validation against real vulnerable circuits before production use.
+**Impact**: Coverage is significantly stronger than baseline-only validation, but still relies on targeted fixtures rather than broad ecosystem benchmarking.
 
 **Mitigation**: Actively seeking pattern contributions. See [PATTERN_GUIDE.md](../patterns/PATTERN_GUIDE.md).
 
@@ -73,11 +73,11 @@ This document transparently lists current limitations and areas for improvement.
 
 **Current State**:
 - Workspace unit/integration test suites run in CI
-- 3 real vulnerable circuits
-- 2 safe circuits
+- Baseline fixtures: 3 vulnerable + 2 safe
+- Real-world integration matrix: 16 vulnerable + 10 safe controls
 
 **Limitations**:
-- Small test corpus
+- Corpus is still small relative to diverse production circuit styles
 - Limited backend coverage (Circom only)
 - No Noir/Halo2/Cairo pattern testing
 - No large-scale circuit testing
