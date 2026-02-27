@@ -69,7 +69,7 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 **⚠️ Important Limitations:**
 - Matching engines include regex/fancyregex/literal, but default scanning is syntax-first and can match markers in comments/strings
 - Use `--semantic` to enable two-pass cross-line checks and reduce false positives
-- Invariant system is aspirational (YAML parsed but not enforced yet; runtime warning emitted)
+- Invariant blocks are parsed and surfaced as runtime warnings; solver-backed enforcement is planned
 - Real-world corpus is expanding; automated matrix currently includes 16 vulnerable fixtures + 10 safe controls
 - See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for complete transparency
 
@@ -207,12 +207,12 @@ patterns:
     severity: high
 ```
 
-⚠️ **IMPORTANT: Invariant System is Not Implemented**
+⚠️ **IMPORTANT: Invariant Enforcement Status**
 
-The YAML schema includes an `invariants` section, but **invariant enforcement is not implemented yet**. Invariant blocks are parsed, and the CLI/library emit runtime warnings when invariants are present. Do not rely on invariant checking for security decisions.
+The YAML schema includes an `invariants` section. In the current release, invariants are parsed and surfaced via runtime warnings, but they are not solver-enforced yet. Treat them as structured metadata/check intent, not as cryptographic proof guarantees.
 
 ```yaml
-# This section is ASPIRATIONAL - not functional
+# This section is schema-level metadata (warning-only in current release)
 invariants:
   - name: output_fully_constrained
     invariant_type: constraint
@@ -242,7 +242,7 @@ See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-syst
 ## Pattern Library
 
 **Current Status: Stable baseline + expanding matrix validation (16 vulnerable fixtures, 10 safe controls)**
-⚠️ **Transparency Note**: Baseline coverage is deepest in `real_vulnerabilities.yaml`. Extended packs are validated per-fixture via the matrix and should still be reviewed as heuristic detectors.
+⚠️ **Transparency Note**: Baseline coverage is deepest in `real_vulnerabilities.yaml`. Extended packs are validated per-fixture via the matrix and are intended for practical triage with reviewer confirmation.
 
 Baseline validated patterns (`patterns/real_vulnerabilities.yaml`):
 
@@ -278,7 +278,7 @@ Matrix-validated extended detections:
 **Coverage Notes** (see [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md)):
 - `patterns/real_vulnerabilities.yaml` remains the strongest baseline pack with full end-to-end validation coverage.
 - Extended packs now have targeted matrix tests for specific real-world fixtures.
-- Several additional packs are still heuristic/unvalidated and should be treated accordingly.
+- Validation depth varies by pack; matrix coverage continues to expand.
 
 **Pattern Files:**
 - `patterns/real_vulnerabilities.yaml` - 3 validated patterns + 2 developer markers
@@ -294,7 +294,7 @@ Matrix-validated extended detections:
 - `patterns/public_input_validation.yaml` - Public input validation checks (targeted matrix validation)
 - `patterns/TEMPLATE.yaml` - Template for new patterns
 
-⚠️ `real_vulnerabilities.yaml` has the deepest validation coverage. Some extended packs now have targeted real-world matrix validation, while others are still awaiting broader validation. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
+⚠️ `real_vulnerabilities.yaml` has the deepest validation coverage. Extended packs already have targeted real-world matrix validation, and broader fixture coverage is added incrementally. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
 
 See [docs/patterns/PATTERN_GUIDE.md](docs/patterns/PATTERN_GUIDE.md) to contribute patterns.
 

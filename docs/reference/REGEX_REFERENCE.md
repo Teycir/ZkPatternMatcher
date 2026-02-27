@@ -93,8 +93,8 @@ The following pattern packs now have targeted fixture-based validation in the in
 - Status: Targeted matrix validation
 
 ### Public Input Validation (`patterns/public_input_validation.yaml`) ✅
-- Public-input declaration/usage heuristics
-- Hash-input validation heuristics
+- Public-input declaration/usage checks
+- Hash-input validation checks
 - Status: Targeted matrix validation
 
 See individual pattern files in `patterns/` directory for detailed documentation.
@@ -168,10 +168,10 @@ See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency on current capabi
 
 ## Security Considerations
 
-- Patterns primarily detect syntax-level issues; semantic mode adds limited heuristic checks
+- Patterns primarily detect syntax-level issues; semantic mode adds focused cross-line checks
 - Manual review still required for complex vulnerabilities
 - Tool itself not audited; dependencies not pinned
-- Not production-ready without pattern library expansion
+- Production-usable for CI triage and audit preparation; continue expanding fixture coverage for higher assurance
 
 ## Performance (Estimated)
 
