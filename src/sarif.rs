@@ -1,6 +1,6 @@
 use crate::{PatternMatch, Severity};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize)]
 pub struct SarifReport {
@@ -87,7 +87,7 @@ fn build_result(pattern_match: &PatternMatch, file_path: &str) -> SarifResult {
         locations: vec![SarifLocation {
             physical_location: SarifPhysicalLocation {
                 artifact_location: SarifArtifactLocation {
-                    uri: file_path.to_string(),
+                    uri: to_sarif_uri(file_path),
                 },
                 region: SarifRegion {
                     start_line: pattern_match.location.line,
@@ -95,6 +95,23 @@ fn build_result(pattern_match: &PatternMatch, file_path: &str) -> SarifResult {
                 },
             },
         }],
+    }
+}
+
+fn to_sarif_uri(file_path: &str) -> String {
+    let normalized = file_path.replace('\\', "/");
+    if normalized.starts_with("file://") {
+        return normalized;
+    }
+
+    if Path::new(file_path).is_absolute() {
+        if normalized.starts_with('/') {
+            format!("file://{}", normalized)
+        } else {
+            format!("file:///{}", normalized)
+        }
+    } else {
+        normalized
     }
 }
 
@@ -182,7 +199,7 @@ mod tests {
             })
             .collect();
 
-        assert!(uris.contains(&"/tmp/a.circom"));
-        assert!(uris.contains(&"/tmp/b.circom"));
+        assert!(uris.contains(&"file:///tmp/a.circom"));
+        assert!(uris.contains(&"file:///tmp/b.circom"));
     }
 }

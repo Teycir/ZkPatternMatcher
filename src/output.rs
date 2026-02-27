@@ -21,29 +21,26 @@ pub struct Summary {
 
 impl Summary {
     pub fn from_matches(matches: &[PatternMatch]) -> Self {
-        Self {
+        let mut summary = Self {
             total: matches.len(),
-            critical: matches
-                .iter()
-                .filter(|m| m.severity == Severity::Critical)
-                .count(),
-            high: matches
-                .iter()
-                .filter(|m| m.severity == Severity::High)
-                .count(),
-            medium: matches
-                .iter()
-                .filter(|m| m.severity == Severity::Medium)
-                .count(),
-            low: matches
-                .iter()
-                .filter(|m| m.severity == Severity::Low)
-                .count(),
-            info: matches
-                .iter()
-                .filter(|m| m.severity == Severity::Info)
-                .count(),
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0,
+            info: 0,
+        };
+
+        for m in matches {
+            match m.severity {
+                Severity::Critical => summary.critical += 1,
+                Severity::High => summary.high += 1,
+                Severity::Medium => summary.medium += 1,
+                Severity::Low => summary.low += 1,
+                Severity::Info => summary.info += 1,
+            }
         }
+
+        summary
     }
 }
 

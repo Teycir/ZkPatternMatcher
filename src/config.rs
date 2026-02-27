@@ -1,6 +1,14 @@
 use serde::Deserialize;
 use std::path::PathBuf;
 
+const DEFAULT_MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
+const DEFAULT_MAX_PATTERN_FILE_SIZE: usize = 1024 * 1024;
+const DEFAULT_MAX_PATTERNS: usize = 1000;
+const DEFAULT_MAX_MATCHES: usize = 10_000;
+const DEFAULT_FORMAT: &str = "text";
+const DEFAULT_SHOW_ICONS: bool = true;
+const DEFAULT_FAIL_ON_CRITICAL: bool = true;
+
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
@@ -32,25 +40,25 @@ pub struct Output {
 }
 
 fn default_max_file_size() -> usize {
-    10485760
+    DEFAULT_MAX_FILE_SIZE
 }
 fn default_max_pattern_file_size() -> usize {
-    1048576
+    DEFAULT_MAX_PATTERN_FILE_SIZE
 }
 fn default_max_patterns() -> usize {
-    1000
+    DEFAULT_MAX_PATTERNS
 }
 fn default_max_matches() -> usize {
-    10000
+    DEFAULT_MAX_MATCHES
 }
 fn default_format() -> String {
-    "text".to_string()
+    DEFAULT_FORMAT.to_string()
 }
 fn default_show_icons() -> bool {
-    true
+    DEFAULT_SHOW_ICONS
 }
 fn default_fail_on_critical() -> bool {
-    true
+    DEFAULT_FAIL_ON_CRITICAL
 }
 
 impl Default for Limits {
