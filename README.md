@@ -3,10 +3,10 @@
 <div align="center">
 
 ```
-   ┌─────────┐      ┌──────────┐      ┌─────────────────┐
-   │ Circuit │ ───▶ │ Patterns │ ───▶ │ Vulnerabilities │
-   │ ZK Code │      │  .yaml   │      │    Detected     │
-   └─────────┘      └──────────┘      └─────────────────┘
+                ┌─────────┐      ┌──────────┐      ┌─────────────────┐
+                │ Circuit │ ───▶ │ Patterns │ ───▶ │ Vulnerabilities │
+                │ ZK Code │      │  .yaml   │      │    Detected     │
+                └─────────┘      └──────────┘      └─────────────────┘
 ```
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
