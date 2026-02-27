@@ -1,40 +1,55 @@
 # ZkPatternMatcher
 
+<div align="center">
+
 ```
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
+
 ║   ┌─────────┐      ┌──────────┐      ┌─────────────────┐   ║
 ║   │ Circuit │ ───▶ │ Patterns │ ───▶ │ Vulnerabilities │   ║
 ║   │ ZK Code │      │  .yaml   │      │    Detected     │   ║
 ║   └─────────┘      └──────────┘      └─────────────────┘   ║
-║                                                              ║
-║   🔍 Scan → 🎯 Match → 🔴 Report                            ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
+
 ```
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 
+</div>
+
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Quick Start](#quick-start)
-- [Pattern Format](#pattern-format)
-- [Pattern Library](#pattern-library)
-- [Use Cases](#use-cases)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [Pattern Sources](#pattern-sources)
-- [License](#license)
-- [Contact](#contact)
-- [Citation](#citation)
-- [Related Projects](#related-projects)
+- [ZkPatternMatcher](#zkpatternmatcher)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Quick Start](#quick-start)
+    - [Prove It Works: Run Validation Suite](#prove-it-works-run-validation-suite)
+    - [1. Scan a Real Vulnerable Circuit](#1-scan-a-real-vulnerable-circuit)
+    - [2. Validate a Pattern](#2-validate-a-pattern)
+    - [3. List Patterns](#3-list-patterns)
+    - [4. JSON Output](#4-json-output)
+    - [5. Use as Library](#5-use-as-library)
+  - [Pattern Format](#pattern-format)
+    - [Pattern Types](#pattern-types)
+    - [Severity Levels](#severity-levels)
+  - [Pattern Library](#pattern-library)
+  - [Use Cases](#use-cases)
+    - [1. Pre-Audit Scanning](#1-pre-audit-scanning)
+    - [2. CI/CD Integration](#2-cicd-integration)
+    - [3. Pattern Development](#3-pattern-development)
+    - [4. Batch Scanning](#4-batch-scanning)
+    - [5. Differential Analysis](#5-differential-analysis)
+  - [Documentation](#documentation)
+  - [Contributing](#contributing)
+  - [Pattern Sources](#pattern-sources)
+  - [License](#license)
+  - [Contact](#contact)
+  - [Citation](#citation)
+  - [Related Projects](#related-projects)
 
 ## Overview
 
