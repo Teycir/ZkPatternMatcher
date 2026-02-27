@@ -16,7 +16,7 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Status**: Early release with 15+ patterns. See [LIMITATIONS.md](LIMITATIONS.md) for semantic analysis limitations.
+⚠️ **Status**: Early proof-of-concept with 3 core validated patterns + 2 developer markers. See [LIMITATIONS.md](LIMITATIONS.md) for full transparency on current capabilities.
 
 ## Table of Contents
 
@@ -54,42 +54,37 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Status: Early Release** - Currently detects 15+ vulnerability classes. Expanding pattern library continuously.
+**Status: Proof-of-Concept** - Currently detects 3 validated vulnerability patterns. Expanding pattern library actively.
 
-**Features:**
-- YAML pattern definitions
-- Regex and literal matching
-- JSON/text output
-- Configurable limits
-- 314 LOC core
+**Core Validated Patterns:**
+- ✅ Underconstrained assignments (`<--` operator)
+- ✅ Weak nullifier assignments
+- ✅ Missing range checks (via comment detection)
 
-**Current Coverage:**
-- ✅ Underconstrained assignments
-- ✅ Weak nullifiers
-- ✅ Missing range checks
-- ✅ Signal aliasing
-- ✅ Missing IsZero constraints
-- ✅ Unchecked division
-- ✅ Field overflow risks
-- ✅ Merkle path validation
-- ✅ Signature verification issues
-- ✅ Commitment uniqueness
-- ✅ Array bounds checks
-- ✅ Bitwise operations
-- ⚠️ Limited: Requires manual review for semantic bugs
+**Developer Markers (not vulnerability patterns):**
+- 🔍 `BUG:` comment markers
+- 🔍 `MISSING:` constraint markers
+
+**⚠️ Important Limitations:**
+- Regex/literal matching only (no semantic analysis)
+- Invariant system is aspirational (YAML parsed but not enforced)
+- Small test corpus (3 vulnerable + 2 safe circuits)
+- See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency
 
 **Test Results:**
 - 29/29 tests passing (23 unit + 6 integration)
-- 6 integration tests using real vulnerabilities from ZkPatternFuzz
-- 3 real vulnerabilities validated
+- 3 real vulnerabilities validated (from ZkPatternFuzz)
 - 0 false positives on 2 safe circuits
-- Production patterns available in `patterns/production.yaml`
+- Pattern files: `patterns/real_vulnerabilities.yaml` (5 entries: 3 patterns + 2 markers)
 
 ## Installation
 
 ```bash
-cargo install --path .
+# Install from source
+cargo install --path . --locked
 ```
+
+⚠️ **Security Note**: Use `--locked` to ensure reproducible builds with pinned dependencies. Dependencies are not pinned in `Cargo.toml` - see [LIMITATIONS.md](LIMITATIONS.md#security-considerations).
 
 ## Configuration
 
@@ -116,9 +111,10 @@ Hardcoded limits (see `.zkpm.toml.example` for reference):
 ✓ ALL VALIDATION TESTS PASSED
 
 Summary:
-  - 23 unit tests passed
-  - 8 real vulnerabilities detected
-  - Pattern library validated
+  - 29 unit + integration tests passed
+  - 3 real vulnerabilities detected
+  - 0 false positives on safe circuits
+  - Pattern library: 3 core + 2 markers
 ```
 
 ### 1. Scan a Real Vulnerable Circuit
@@ -205,16 +201,24 @@ patterns:
     pattern: '<--'
     message: 'Unconstrained assignment detected'
     severity: high
-
-# Note: Invariant checking is aspirational/future functionality
-# invariants:
-#   - name: output_fully_constrained
-#     invariant_type: constraint
-#     relation: "rank(constraint_matrix) == num_signals - 1"
-#     oracle: must_hold
-#     severity: critical
-#     description: "Output signals must be fully constrained"
 ```
+
+⚠️ **IMPORTANT: Invariant System is Not Implemented**
+
+The YAML schema includes an `invariants` section, but **this functionality does not exist yet**. Invariant blocks are parsed but silently ignored. Do not rely on invariant checking.
+
+```yaml
+# This section is ASPIRATIONAL - not functional
+invariants:
+  - name: output_fully_constrained
+    invariant_type: constraint
+    relation: "rank(constraint_matrix) == num_signals - 1"
+    oracle: must_hold
+    severity: critical
+    description: "Output signals must be fully constrained"
+```
+
+See [LIMITATIONS.md](LIMITATIONS.md#invariant-system) for details.
 
 ### Pattern Types
 
@@ -232,39 +236,42 @@ patterns:
 
 ## Pattern Library
 
-**Current Status: 15+ Patterns**
+**Current Status: 3 Core Patterns (Proof-of-Concept)**
 
-Test suite results:
+⚠️ **Transparency Note**: This is an early-stage tool. The pattern library is intentionally small and focused on validation.
 
-| Vulnerability | Detected | Test File |
-|---------------|----------|----------|
-| Underconstrained Assignment | Yes | `tests/real_vulnerabilities/underconstrained_multiplier.circom` |
-| Weak Nullifier | Yes | `tests/real_vulnerabilities/weak_nullifier.circom` |
-| Missing Range Check | Yes | `tests/real_vulnerabilities/missing_range_check.circom` |
+Validated patterns:
+
+| Pattern | Status | Test File |
+|---------|--------|----------|
+| Underconstrained Assignment (`<--`) | ✅ Validated | `tests/real_vulnerabilities/underconstrained_multiplier.circom` |
+| Weak Nullifier (`nullifier <--`) | ✅ Validated | `tests/real_vulnerabilities/weak_nullifier.circom` |
+| Missing Range Check (comment) | ⚠️ Literal match | `tests/real_vulnerabilities/missing_range_check.circom` |
+
+Developer markers (not vulnerability patterns):
+- `BUG:` - Matches developer-written vulnerability markers
+- `MISSING:` - Matches constraint TODO comments
 
 Run `./validate.sh` to verify.
 
-**Covered Vulnerability Classes:**
-- Underconstrained circuits (`<--` without `===`)
-- Nullifier issues (weak/missing uniqueness)
-- Range violations (missing bounds checks)
+**Missing Coverage** (see [LIMITATIONS.md](LIMITATIONS.md)):
 - Signal aliasing (name reuse)
 - Missing IsZero constraints
 - Unchecked division (zero divisor)
-- Field arithmetic overflow (large constants)
-- Public input validation gaps
+- Field arithmetic overflow
 - Merkle path validation issues
 - Signature verification weaknesses
 - Commitment uniqueness problems
-- Unbounded loops
+- Array bounds checks
 - Bitwise operations without range proofs
-- Array access without bounds
 - Equality checks vs constraints (`==` vs `===`)
 
 **Pattern Files:**
-- `patterns/real_vulnerabilities.yaml` - Core 3 validated patterns
-- `patterns/extended_vulnerabilities.yaml` - 12 additional patterns
+- `patterns/real_vulnerabilities.yaml` - 3 validated patterns + 2 developer markers
+- `patterns/extended_vulnerabilities.yaml` - Experimental patterns (not validated)
 - `patterns/TEMPLATE.yaml` - Template for new patterns
+
+⚠️ Only `real_vulnerabilities.yaml` is validated against real test circuits.
 
 See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
 

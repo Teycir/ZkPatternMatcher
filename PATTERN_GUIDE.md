@@ -41,10 +41,12 @@ zkpm patterns/your_pattern_name.yaml path/to/test_circuit.circom
 patterns:
   - id: missing_range_check
     kind: regex
-    pattern: 'signal\s+input\s+\w+;(?!\s*//\s*range)'
-    message: 'Input signal missing range check comment'
-    severity: high
+    pattern: 'signal\s+input\s+\w{1,50};'
+    message: 'Input signal detected - verify range check exists'
+    severity: medium
 ```
+
+⚠️ **Important**: Do NOT use lookahead `(?!)` or lookbehind `(?<=)` - the Rust regex engine does not support them and patterns will fail at runtime.
 
 ### Literal String Pattern
 
@@ -57,7 +59,9 @@ patterns:
     severity: critical
 ```
 
-### Pattern with Invariant
+### Pattern with Invariant (NOT IMPLEMENTED)
+
+⚠️ **WARNING**: The invariant system is aspirational. This YAML will parse but invariants are not enforced. See [LIMITATIONS.md](LIMITATIONS.md#invariant-system).
 
 ```yaml
 patterns:
@@ -67,6 +71,7 @@ patterns:
     message: 'Output signal detected'
     severity: info
 
+# This section is parsed but NOT enforced
 invariants:
   - name: output_constrained
     invariant_type: constraint
