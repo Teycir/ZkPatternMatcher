@@ -40,7 +40,7 @@ patterns:
 - **kind**: Detection method
   - `regex`: Regular expression matching
   - `literal`: Exact string matching
-  - `ast`: AST-based analysis (not yet implemented)
+  - `ast`: Reserved schema kind; currently rejected at load time
 - **pattern**: The actual detection pattern
 - **message**: Short one-line description for display
 - **severity**: Impact level
@@ -55,10 +55,11 @@ patterns:
 - **references**: Links to vulnerability databases, audit reports, documentation
 - **false_positive_note**: When/why false positives occur
 
-## Invariant Format (Future)
+## Invariant Format (Schema Only; Not Enforced)
 
 ```yaml
-# Note: Invariant checking requires AST analysis - not yet implemented
+# Note: invariants are parsed but not enforced at runtime.
+# The CLI and matcher print warnings when invariants are present.
 invariants:
   - name: invariant_name
     invariant_type: constraint | metamorphic | differential
@@ -73,16 +74,16 @@ invariants:
 ## Limitations
 
 ### Current (v0.1.0)
-- **Syntax-only detection**: Patterns match code structure, not semantics
-- **No AST analysis**: Cannot understand constraint flow or signal dependencies
-- **Comment-blind**: May match patterns in comments (mitigated by context)
-- **Line-by-line**: No multi-line pattern support
+- **Syntax-first default**: Pattern matching is line-by-line and syntax-based by default
+- **Limited semantic mode**: `--semantic` adds heuristic cross-line checks, not full AST/constraint analysis
+- **Regex-only scans can match comments/strings**: use semantic mode for higher-confidence findings
+- **No invariant enforcement**: `invariants` blocks are schema-level only today
 
 ### Future Improvements
 - AST-based pattern matching for structural analysis
 - Constraint graph analysis for semantic bugs
-- Multi-line pattern support
-- Comment filtering pre-processing
+- Deeper semantic/data-flow analysis
+- Solver-backed invariant checking
 
 ## Best Practices
 

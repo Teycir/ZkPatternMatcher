@@ -16,7 +16,7 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Status**: Early proof-of-concept with 3 core validated patterns + 2 developer markers. See [LIMITATIONS.md](LIMITATIONS.md) for full transparency on current capabilities.
+⚠️ **Status**: Early proof-of-concept with 3 core validated patterns + 2 developer markers. See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for full transparency on current capabilities.
 
 ## Table of Contents
 
@@ -70,10 +70,10 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - Use `--semantic` to enable two-pass cross-line checks and reduce false positives
 - Invariant system is aspirational (YAML parsed but not enforced yet; runtime warning emitted)
 - Small test corpus (3 vulnerable + 2 safe circuits)
-- See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency
+- See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for complete transparency
 
 **Test Results:**
-- 29/29 tests passing (23 unit + 6 integration)
+- `cargo test -q` passes locally (37 passed, 1 ignored integration test)
 - 3 real vulnerabilities validated (from ZkPatternFuzz)
 - 0 false positives on 2 safe circuits
 - Pattern files: `patterns/real_vulnerabilities.yaml` (5 entries: 3 patterns + 2 markers)
@@ -87,7 +87,7 @@ MSRV: **Rust 1.80+** (uses `std::sync::LazyLock` in semantic analysis internals)
 cargo install --path . --locked
 ```
 
-⚠️ **Security Note**: Use `--locked` to ensure reproducible builds with pinned dependencies. Dependencies are not pinned in `Cargo.toml` - see [LIMITATIONS.md](LIMITATIONS.md#security-considerations).
+⚠️ **Security Note**: Use `--locked` to ensure reproducible builds with pinned dependencies. Dependencies are not pinned in `Cargo.toml` - see [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#security-considerations).
 
 ## Configuration
 
@@ -208,7 +208,7 @@ patterns:
 
 ⚠️ **IMPORTANT: Invariant System is Not Implemented**
 
-The YAML schema includes an `invariants` section, but **this functionality does not exist yet**. Invariant blocks are parsed but silently ignored. Do not rely on invariant checking.
+The YAML schema includes an `invariants` section, but **invariant enforcement is not implemented yet**. Invariant blocks are parsed, and the CLI/library emit runtime warnings when invariants are present. Do not rely on invariant checking for security decisions.
 
 ```yaml
 # This section is ASPIRATIONAL - not functional
@@ -221,13 +221,13 @@ invariants:
     description: "Output signals must be fully constrained"
 ```
 
-See [LIMITATIONS.md](LIMITATIONS.md#invariant-system) for details.
+See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-system) for details.
 
 ### Pattern Types
 
 - **regex**: Regular expression matching
 - **literal**: Exact string matching
-- **ast**: AST-based matching (future)
+- **ast**: Reserved schema kind; currently rejected at load time with an explicit error
 
 ### Severity Levels
 
@@ -257,31 +257,27 @@ Developer markers (not vulnerability patterns):
 
 Run `./validate.sh` to verify.
 
-**Missing Coverage** (see [LIMITATIONS.md](LIMITATIONS.md)):
-- Signal aliasing (name reuse)
-- Missing IsZero constraints
-- Unchecked division (zero divisor)
-- Field arithmetic overflow
-- Merkle path validation issues
-- Signature verification weaknesses
-- Commitment uniqueness problems
-- Array bounds checks
-- Bitwise operations without range proofs
-- Equality checks vs constraints (`==` vs `===`)
+**Coverage Notes** (see [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md)):
+- `patterns/real_vulnerabilities.yaml` is the only fully validated library against real vulnerable circuits.
+- Additional rule sets are implemented but mostly unvalidated and should be treated as heuristics until validated.
 
 **Pattern Files:**
 - `patterns/real_vulnerabilities.yaml` - 3 validated patterns + 2 developer markers
+- `patterns/production.yaml` - curated production-focused set with metadata
+- `patterns/underconstrained.yaml` - focused underconstrained assignment rules
 - `patterns/signal_aliasing.yaml` - ⚠️ NEW: Signal aliasing detection (unvalidated)
 - `patterns/missing_iszero.yaml` - ⚠️ NEW: IsZero component checks (unvalidated)
 - `patterns/unchecked_division.yaml` - ⚠️ NEW: Division by zero detection (unvalidated)
 - `patterns/array_bounds.yaml` - ⚠️ NEW: Array bounds checking (unvalidated)
 - `patterns/equality_check.yaml` - ⚠️ NEW: Equality operator misuse (unvalidated)
-- `patterns/extended_vulnerabilities.yaml` - Experimental patterns (not validated)
+- `patterns/merkle_path.yaml` - ⚠️ NEW: Merkle path validation checks (unvalidated)
+- `patterns/commitment_soundness.yaml` - ⚠️ NEW: Commitment checks (unvalidated)
+- `patterns/public_input_validation.yaml` - ⚠️ NEW: Public input validation checks (unvalidated)
 - `patterns/TEMPLATE.yaml` - Template for new patterns
 
 ⚠️ Only `real_vulnerabilities.yaml` is validated against real test circuits. New patterns in separate files are awaiting validation. See [patterns/EXTENDED_PATTERNS.md](patterns/EXTENDED_PATTERNS.md) for details.
 
-See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
+See [docs/patterns/PATTERN_GUIDE.md](docs/patterns/PATTERN_GUIDE.md) to contribute patterns.
 
 ## Use Cases
 
@@ -290,7 +286,7 @@ See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) to contribute patterns.
 ```bash
 # Scan circuits before manual review
 for circuit in circuits/*.circom; do
-    zkpm --format json patterns/critical.yaml "$circuit" >> scan_results.json
+    zkpm --format json patterns/production.yaml "$circuit" >> scan_results.json
 done
 ```
 
@@ -307,7 +303,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: cargo install zkpm --version 0.1.0  # Pin version for reproducibility
-      - run: zkpm patterns/critical.yaml circuits/main.circom
+      - run: zkpm patterns/production.yaml circuits/main.circom
 ```
 
 ### 3. Pattern Development
@@ -333,7 +329,7 @@ zkpm patterns/new_pattern.yaml test_circuit.circom
 # Scan multiple repositories
 for repo in repos/*; do
     find "$repo" -name "*.circom" | while read file; do
-        zkpm --format json patterns/all.yaml "$file" >> "results/${repo##*/}.json"
+        zkpm --format json patterns/production.yaml "$file" >> "results/${repo##*/}.json"
     done
 done
 ```
@@ -343,10 +339,10 @@ done
 ```bash
 # Compare scans before/after changes
 git checkout main
-zkpm --format json patterns/all.yaml circuit.circom > before.json
+zkpm --format json patterns/production.yaml circuit.circom > before.json
 
 git checkout feature-branch
-zkpm --format json patterns/all.yaml circuit.circom > after.json
+zkpm --format json patterns/production.yaml circuit.circom > after.json
 
 diff <(jq -S . before.json) <(jq -S . after.json)
 ```
@@ -355,12 +351,12 @@ diff <(jq -S . before.json) <(jq -S . after.json)
 
 See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
 
-- **[QUICKSTART.md](docs/QUICKSTART.md)** - Step-by-step tutorial
+- **[QUICKSTART.md](docs/guides/QUICKSTART.md)** - Step-by-step tutorial
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design
-- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guide
+- **[CONTRIBUTING.md](docs/development/CONTRIBUTING.md)** - Contribution guide
 - **[SECURITY.md](docs/SECURITY.md)** - Security policy
 - **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history
-- **[CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)** - Community guidelines
+- **[CODE_OF_CONDUCT.md](docs/development/CODE_OF_CONDUCT.md)** - Community guidelines
 
 ## Contributing
 
@@ -372,7 +368,7 @@ See [docs/INDEX.md](docs/INDEX.md) for complete documentation.
 2. **Fill in details**: Edit the YAML with your vulnerability pattern
 3. **Test it**: `zkpm validate patterns/your_pattern.yaml`
 
-See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) for detailed instructions and examples.
+See [docs/patterns/PATTERN_GUIDE.md](docs/patterns/PATTERN_GUIDE.md) for detailed instructions and examples.
 
 **Quick Example:**
 ```yaml
@@ -384,7 +380,7 @@ patterns:
     severity: high
 ```
 
-All contributions welcome. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for full guidelines.
+All contributions welcome. See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for full guidelines.
 
 ## Pattern Sources
 

@@ -61,7 +61,7 @@ patterns:
 
 ### Pattern with Invariant (NOT IMPLEMENTED)
 
-⚠️ **WARNING**: The invariant system is aspirational. This YAML will parse but invariants are not enforced. See [LIMITATIONS.md](LIMITATIONS.md#invariant-system).
+⚠️ **WARNING**: The invariant system is aspirational. This YAML will parse but invariants are not enforced. The CLI/matcher emit runtime warnings when invariants are present. See [LIMITATIONS.md](../reference/LIMITATIONS.md#invariant-system).
 
 ```yaml
 patterns:

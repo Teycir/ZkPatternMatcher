@@ -88,5 +88,5 @@ fn main() -> anyhow::Result<()> {
 ## Next Steps
 
 - Browse `patterns/` for more examples
-- Read `CONTRIBUTING.md` to add your own patterns
+- Read `../development/CONTRIBUTING.md` to add your own patterns
 - Check out the parent project [ZkPatternFuzz](https://github.com/teycir/ZkPatternFuzz) for full security testing

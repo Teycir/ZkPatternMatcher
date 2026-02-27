@@ -4,19 +4,22 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Pattern Coverage (Critical)
 
-**Current State**: 3 validated patterns + 5 newly implemented (unvalidated)
+**Current State**: 3 validated vulnerability patterns, plus multiple additional pattern files that are implemented but mostly unvalidated.
 
 **Validated Patterns** (in `real_vulnerabilities.yaml`):
 - ✅ Underconstrained assignments (`<--` operator)
 - ✅ Weak nullifier assignments
 - ✅ Missing range checks (via comment detection)
 
-**Newly Implemented - Awaiting Validation** (separate YAML files):
+**Implemented - Awaiting Validation** (separate YAML files):
 - ⚠️ Signal aliasing attacks (`signal_aliasing.yaml`)
 - ⚠️ Missing IsZero constraint checks (`missing_iszero.yaml`)
 - ⚠️ Unchecked division (`unchecked_division.yaml`)
 - ⚠️ Array bounds checks (`array_bounds.yaml`)
 - ⚠️ Equality operator misuse (`equality_check.yaml`)
+- ⚠️ Merkle path checks (`merkle_path.yaml`)
+- ⚠️ Commitment soundness checks (`commitment_soundness.yaml`)
+- ⚠️ Public input validation checks (`public_input_validation.yaml`)
 
 **Still Missing Coverage**:
 - Field arithmetic overflow
@@ -30,37 +33,37 @@ This document transparently lists current limitations and areas for improvement.
 
 **Impact**: New patterns expand coverage significantly but require validation against real vulnerable circuits before production use.
 
-**Mitigation**: Actively seeking pattern contributions. See [PATTERN_GUIDE.md](PATTERN_GUIDE.md).
+**Mitigation**: Actively seeking pattern contributions. See [PATTERN_GUIDE.md](../patterns/PATTERN_GUIDE.md).
 
 ## Pattern Matching Limitations
 
-**Current State**: Regex and literal string matching only (standard Rust `regex` crate)
+**Current State**: Regex, fancy-regex, and literal string matching with optional two-pass semantic checks (`--semantic`).
 
 **Regex Engine Limitations**:
-- No backreferences (`\1`, `\2`, etc.) - not supported by Rust `regex` crate
-- No lookahead/lookbehind (`(?=)`, `(?!)`, `(?<=)`, `(?<!)`) - not supported
-- Line-by-line scanning only - multiline patterns with `[\s\S]` not supported
-- Patterns requiring these features have been simplified or marked as manual checks
+- Standard `kind: regex` patterns use Rust `regex` (no backreferences or lookaround)
+- `kind: fancy_regex` supports advanced constructs but may be slower for complex patterns
+- Pattern matching still runs line-by-line (no multiline pattern scope)
+- Complex semantic/contextual properties still require manual review
 
 **Semantic Analysis Limitations**:
-- No cross-line signal tracking (can't detect orphaned `<--` across multiple lines)
-- No data flow tracking
-- No constraint system analysis
+- Semantic mode is heuristic and currently covers a limited rule set
+- No full data-flow or constraint-graph solving
 - No witness generation testing
 - No proof verification testing
+- Invariant blocks are not enforced
 
-**Impact**: Can only detect syntactic patterns on single lines. Complex vulnerabilities requiring multi-line analysis or backreferences require manual review.
+**Impact**: Default mode is syntax-first; semantic mode improves cross-line signal checks but still does not replace a full circuit audit.
 
 **Future Options**:
-1. Add `fancy-regex` crate for backreference support (adds dependency)
-2. Implement two-pass semantic analyzer for cross-line checks (major refactor)
-3. AST-based matching (requires Circom parser integration)
+1. Expand semantic rule coverage and reduce heuristic false positives
+2. AST-based matching (requires Circom parser integration)
+3. Invariant checking with solver-backed enforcement
 
 ## Invariant System
 
-**Current State**: YAML schema exists but functionality is aspirational
+**Current State**: YAML schema exists, but invariant enforcement is not implemented.
 
-**Status**: The `invariants` section in YAML patterns is parsed but not enforced. Examples in docs are placeholders.
+**Status**: The `invariants` section in YAML patterns is parsed but not enforced. The CLI and matcher emit warnings when invariants are present.
 
 **Impact**: Cannot verify constraint system properties or mathematical invariants.
 
@@ -68,8 +71,8 @@ This document transparently lists current limitations and areas for improvement.
 
 ## Testing Coverage
 
-**Current State**: 
-- 23 unit tests
+**Current State**:
+- Workspace unit/integration test suites run in CI
 - 3 real vulnerable circuits
 - 2 safe circuits
 
@@ -83,17 +86,16 @@ This document transparently lists current limitations and areas for improvement.
 
 ## CI/CD Integration
 
-**Current State**: Example workflow provided, no live CI badge
+**Current State**: GitHub Actions CI is enabled (test, clippy, fmt, release build) with a live status badge.
 
 **Limitations**:
-- No automated CI for this repo
-- Test badge is static (always green)
-- No regression testing on pattern changes
-- No performance benchmarking
+- No dedicated benchmark/performance regression job
+- No fuzzing job in CI
+- Pattern quality still depends on corpus expansion and manual validation
 
-**Impact**: Contributors can't verify their changes don't break existing patterns.
+**Impact**: Functional regressions are caught, but performance and deeper security regressions may still slip through.
 
-**Planned**: GitHub Actions workflow with live badge.
+**Planned**: Add benchmark and fuzz/regression tracks to CI.
 
 ## Performance
 
@@ -143,10 +145,10 @@ This document transparently lists current limitations and areas for improvement.
 ## Contributing
 
 Help address these limitations! See:
-- [PATTERN_GUIDE.md](PATTERN_GUIDE.md) - Add patterns
-- [CONTRIBUTING.md](docs/CONTRIBUTING.md) - General contributions
+- [PATTERN_GUIDE.md](../patterns/PATTERN_GUIDE.md) - Add patterns
+- [CONTRIBUTING.md](../development/CONTRIBUTING.md) - General contributions
 - GitHub Issues - Report bugs or request features
 
 ## Transparency Commitment
 
-This document will be updated as limitations are addressed or new ones discovered. Last updated: 2025-02-23
+This document will be updated as limitations are addressed or new ones discovered. Last updated: 2026-02-27

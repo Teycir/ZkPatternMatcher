@@ -1,7 +1,7 @@
 # ZkPatternMatcher Roadmap
 
 ## Current Status
-- ✅ 32 patterns across 8 YAML files
+- ✅ Pattern coverage expanded across multiple YAML libraries
 - ✅ Fancy-regex support for backreferences
 - ✅ Two-pass semantic analysis (orphaned unconstrained, signal aliasing, self-equality, var equality)
 - ✅ Integration test suite with real vulnerable circuits
@@ -15,7 +15,7 @@
 Add CLI flag to treat all findings as warnings, not confirmed vulnerabilities.
 
 ```bash
-zkpm patterns/all.yaml circuit.circom --warn-only
+zkpm patterns/production.yaml circuit.circom --warn-only
 ```
 
 **Implementation**:

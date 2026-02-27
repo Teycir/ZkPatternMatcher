@@ -4,7 +4,7 @@
 
 This document catalogs all regex patterns currently implemented in ZkPatternMatcher for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Transparency Note**: This is a proof-of-concept tool with **3 validated patterns**. Extended patterns listed below are planned but not yet implemented.
+⚠️ **Transparency Note**: This is a proof-of-concept tool with **3 validated patterns**. Additional pattern files exist, but most are not yet validated against real vulnerable circuits.
 
 ## Implemented Patterns (in `patterns/real_vulnerabilities.yaml`)
 
@@ -47,7 +47,7 @@ This document catalogs all regex patterns currently implemented in ZkPatternMatc
 **Purpose:** Detect incomplete circuit implementations  
 **Severity:** High
 
-## Planned Patterns (Now Implemented - Awaiting Validation)
+## Additional Pattern Files (Implemented, Awaiting Validation)
 
 The following patterns have been implemented but not yet validated against real vulnerable circuits:
 
@@ -104,11 +104,11 @@ Each pattern targets specific vulnerability classes found in real ZK circuits.
 | Missing Range Check | ⚠️ | ✅ | Literal match only |
 | BUG Marker | ✅ | ✅ | Developer marker |
 | MISSING Marker | ✅ | ✅ | Developer marker |
-| Signal Aliasing | ❌ | ❌ | Not implemented |
-| Missing IsZero | ❌ | ❌ | Not implemented |
-| Unchecked Division | ❌ | ❌ | Not implemented |
-| Array Bounds | ❌ | ❌ | Not implemented |
-| Equality Check | ❌ | ❌ | Not implemented |
+| Signal Aliasing | ⚠️ | ⚠️ | Implemented, unvalidated |
+| Missing IsZero | ⚠️ | ⚠️ | Implemented, unvalidated |
+| Unchecked Division | ⚠️ | ⚠️ | Implemented, unvalidated |
+| Array Bounds | ⚠️ | ⚠️ | Implemented, unvalidated |
+| Equality Check | ⚠️ | ⚠️ | Implemented, unvalidated |
 
 ## Usage Examples
 
@@ -128,7 +128,7 @@ let matches = matcher.scan_file("circuit.circom")?;
 
 ## Contributing New Patterns
 
-We actively seek pattern contributions! See [PATTERN_GUIDE.md](PATTERN_GUIDE.md) for:
+We actively seek pattern contributions! See [PATTERN_GUIDE.md](../patterns/PATTERN_GUIDE.md) for:
 
 1. **Identify Vulnerability:** Find real vulnerable circuit code
 2. **Create Regex:** Write bounded, compatible regex pattern (no lookahead/lookbehind!)
@@ -138,16 +138,17 @@ We actively seek pattern contributions! See [PATTERN_GUIDE.md](PATTERN_GUIDE.md)
 
 ## Current Limitations
 
-- **Small Pattern Library**: Only 3 validated patterns
-- **Syntax-Only Detection**: No semantic analysis or data flow tracking
-- **No Invariant Checking**: Invariant YAML blocks are parsed but not enforced
+- **Small Validated Library**: Only 3 vulnerability patterns are validated against real vulnerable circuits
+- **Syntax-First Matching**: Default regex/literal scans are line-based and can match comments/strings
+- **Limited Semantic Coverage**: `--semantic` adds heuristic cross-line checks, not full data-flow/AST analysis
+- **No Invariant Enforcement**: Invariant YAML blocks are parsed but not enforced (warnings are emitted)
 - **Limited Test Corpus**: 3 vulnerable + 2 safe circuits
 
 See [LIMITATIONS.md](LIMITATIONS.md) for complete transparency on current capabilities.
 
 ## Security Considerations
 
-- Patterns detect syntax-level issues, not semantic bugs
+- Patterns primarily detect syntax-level issues; semantic mode adds limited heuristic checks
 - Manual review still required for complex vulnerabilities
 - Tool itself not audited; dependencies not pinned
 - Not production-ready without pattern library expansion

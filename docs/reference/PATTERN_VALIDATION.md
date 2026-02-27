@@ -4,7 +4,7 @@
 
 - **Test Corpus:** 3 real vulnerable circuits + 2 safe circuits
 - **Total Lines Scanned:** ~150 LOC
-- **Validation Date:** 2024-02-27
+- **Validation Date:** Baseline corpus snapshot (see git history for latest updates)
 
 ## Pattern Performance
 
@@ -20,9 +20,9 @@
 ## Known Limitations
 
 ### Pattern Scope
-- **Syntax-only detection:** Patterns match code structure, not semantic correctness
-- **No AST analysis:** Cannot distinguish constraint context from expression context
-- **Comment-blind:** Patterns may match code in comments (mitigated by context)
+- **Syntax-first default:** Pattern matching is line-by-line and syntax-based by default
+- **Limited semantic coverage:** `--semantic` adds heuristic cross-line checks, not full AST/constraint-graph analysis
+- **Regex-only false positives:** Regex/literal scans can match comments/strings; semantic mode strips comments and reduces this class of noise
 
 ### False Positive Scenarios
 
@@ -51,10 +51,10 @@
 
 ## Recommendations
 
-1. **Pre-processing:** Filter comments/strings before pattern matching
-2. **Context awareness:** Upgrade to AST-based matching for production use
+1. **Prefer semantic mode for review scans:** Use `--semantic` to reduce comment/string-based noise
+2. **Context awareness:** Upgrade to AST-based matching for production-grade precision
 3. **Severity classification:** Mark heuristic patterns as "hints" not "detections"
-4. **Continuous validation:** Expand test corpus to 50+ circuits for statistical confidence
+4. **Continuous validation:** Expand test corpus to 50+ circuits for stronger confidence bounds
 
 ## Regex Flags
 
