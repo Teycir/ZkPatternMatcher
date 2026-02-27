@@ -5,6 +5,7 @@
 - ✅ Fancy-regex support for backreferences
 - ✅ Two-pass semantic analysis (orphaned unconstrained, signal aliasing, self-equality, var equality)
 - ✅ Integration test suite with real vulnerable circuits
+- ✅ Manifest-style real-world validation matrix in `cargo test` (vuln + safe control fixtures)
 
 ## Short Term (Next 2 Weeks)
 

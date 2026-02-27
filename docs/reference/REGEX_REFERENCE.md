@@ -4,7 +4,7 @@
 
 This document catalogs all regex patterns currently implemented in ZkPatternMatcher for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Transparency Note**: This is a proof-of-concept tool with **3 validated patterns**. Additional pattern files exist, but most are not yet validated against real vulnerable circuits.
+**Transparency Note**: The scanner is stable and includes **3 validated vulnerability patterns** in the baseline set. Additional pattern files exist, but most are not yet validated against real vulnerable circuits.
 
 ## Implemented Patterns (in `patterns/real_vulnerabilities.yaml`)
 

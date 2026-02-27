@@ -16,7 +16,7 @@
 
 A lightweight, standalone pattern matching library for detecting vulnerabilities in Zero-Knowledge proof circuits.
 
-⚠️ **Status**: Early proof-of-concept with 3 core validated patterns + 2 developer markers. See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for full transparency on current capabilities.
+ **Status**: Stable scanner and CLI with 3 real-vulnerability validated patterns (+ 2 validated developer markers) and an expanded pattern library (47 pattern entries across 11 non-template YAML files, many still being validated). See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for full transparency on current capabilities.
 
 ## Table of Contents
 
@@ -44,6 +44,7 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
     - [5. Differential Analysis](#5-differential-analysis)
   - [Documentation](#documentation)
   - [Contributing](#contributing)
+    - [Adding New Patterns (Easy!)](#adding-new-patterns-easy)
   - [Pattern Sources](#pattern-sources)
   - [License](#license)
   - [Contact](#contact)
@@ -54,7 +55,7 @@ A lightweight, standalone pattern matching library for detecting vulnerabilities
 
 Pattern matching library for ZK circuit vulnerability detection. Scans circuit code against YAML-defined patterns.
 
-**Status: Proof-of-Concept** - Currently detects 3 validated vulnerability patterns. Expanding pattern library actively.
+**Status: Stable** - Core real-vulnerability validation is stable (3 validated vulnerability patterns), while broader pattern coverage continues to expand and be validated.
 
 **Core Validated Patterns:**
 - ✅ Underconstrained assignments (`<--` operator)
@@ -73,7 +74,7 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 - See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md) for complete transparency
 
 **Test Results:**
-- `cargo test -q` passes locally (37 passed, 1 ignored integration test)
+- `cargo test -q` passes locally (39 passed, 1 ignored integration test)
 - 3 real vulnerabilities validated (from ZkPatternFuzz)
 - 0 false positives on 2 safe circuits
 - Pattern files: `patterns/real_vulnerabilities.yaml` (5 entries: 3 patterns + 2 markers)
@@ -239,9 +240,9 @@ See [docs/reference/LIMITATIONS.md](docs/reference/LIMITATIONS.md#invariant-syst
 
 ## Pattern Library
 
-**Current Status: 3 Core Patterns (Proof-of-Concept)**
+**Current Status: Stable Core Coverage (3 validated vulnerability patterns)**
 
-⚠️ **Transparency Note**: This is an early-stage tool. The pattern library is intentionally small and focused on validation.
+⚠️ **Transparency Note**: The core engine is stable. The pattern library is intentionally quality-gated, and many extended patterns are still under validation.
 
 Validated patterns:
 
