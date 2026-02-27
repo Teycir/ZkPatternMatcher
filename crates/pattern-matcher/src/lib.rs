@@ -80,6 +80,13 @@ impl PatternMatcher {
                 anyhow::bail!("Duplicate pattern id detected: {}", pattern.id);
             }
 
+            if pattern.kind == PatternKind::Ast {
+                anyhow::bail!(
+                    "Pattern '{}' uses kind=ast, which is not implemented yet",
+                    pattern.id
+                );
+            }
+
             match pattern.kind {
                 PatternKind::Regex => {
                     if pattern.pattern.len() > limits.max_regex_length {
@@ -434,5 +441,24 @@ mod tests {
             .iter()
             .any(|m| m.pattern_id == "orphaned_unconstrained_assignment"));
         Ok(())
+    }
+
+    #[test]
+    fn rejects_ast_patterns_until_implemented() {
+        let library = PatternLibrary {
+            patterns: vec![Pattern {
+                id: "ast_check".to_string(),
+                kind: PatternKind::Ast,
+                pattern: "unused".to_string(),
+                message: "unused".to_string(),
+                severity: None,
+            }],
+            invariants: vec![],
+        };
+
+        let err = PatternMatcher::new(library)
+            .err()
+            .expect("expected AST kind validation error");
+        assert!(err.to_string().contains("kind=ast"));
     }
 }

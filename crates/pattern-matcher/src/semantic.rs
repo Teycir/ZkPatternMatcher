@@ -43,8 +43,6 @@ static RE_PORT_WIRING: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(\w+)\.(\w+)\s*<==\s*(\w+)").expect("valid regex"));
 static RE_TEMPLATE_START: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*template\s+(\w+)\s*\(").expect("valid regex"));
-static RE_COMPONENT_DECL: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*component\s+(\w+)\s*=\s*(\w+)").expect("valid regex"));
 static RE_VAR_DECL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*var\s+(\w+)").expect("valid regex"));
 static RE_SELF_EQ: LazyLock<Regex> =
@@ -74,7 +72,6 @@ pub fn two_pass_scan(source: &str) -> Vec<SemanticFinding> {
 
 #[derive(Debug)]
 struct TemplateBlock {
-    name: String,
     lines: Vec<(usize, String)>, // (1-based global line number, line content)
 }
 
@@ -89,15 +86,11 @@ fn split_into_templates(source: &str) -> Vec<TemplateBlock> {
         let line_no = i + 1;
 
         // Detect template header
-        if let Some(caps) = RE_TEMPLATE_START.captures(line) {
+        if RE_TEMPLATE_START.is_match(line) {
             if let Some(prev) = current.take() {
                 templates.push(prev);
             }
-            let name = caps[1].to_string();
-            current = Some(TemplateBlock {
-                name,
-                lines: Vec::new(),
-            });
+            current = Some(TemplateBlock { lines: Vec::new() });
             depth = 0;
         }
 
@@ -141,15 +134,10 @@ fn scan_template(tmpl: &TemplateBlock) -> Vec<SemanticFinding> {
 
     let assignments = collect_assignments(tmpl);
     let port_wirings = collect_port_wirings(tmpl);
-    let component_names = collect_component_names(tmpl);
 
     findings.extend(check_orphaned_unconstrained(&assignments));
     findings.extend(check_signal_aliasing(&port_wirings));
     findings.extend(check_var_equality_constraint(&tmpl.lines));
-
-    // Template name used for scoping - prevents cross-template signal bleed
-    let _ = &tmpl.name;
-    let _ = component_names; // reserved for future component-level checks
 
     findings
 }
@@ -195,11 +183,47 @@ fn normalize_signal(raw: &str) -> String {
 }
 
 fn strip_comment(line: &str) -> String {
-    if let Some(idx) = line.find("//") {
-        line[..idx].to_string()
-    } else {
-        line.to_string()
+    let chars: Vec<char> = line.chars().collect();
+    let mut result = String::with_capacity(line.len());
+    let mut i = 0;
+    let mut in_string: Option<char> = None;
+    let mut escaped = false;
+
+    while i < chars.len() {
+        let c = chars[i];
+        let next = chars.get(i + 1).copied();
+
+        if let Some(quote) = in_string {
+            result.push(c);
+
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == quote {
+                in_string = None;
+            }
+
+            i += 1;
+            continue;
+        }
+
+        if c == '"' || c == '\'' {
+            in_string = Some(c);
+            result.push(c);
+            i += 1;
+            continue;
+        }
+
+        if c == '/' && next == Some('/') {
+            break;
+        }
+
+        result.push(c);
+        i += 1;
     }
+
+    result
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,16 +251,6 @@ fn collect_port_wirings(tmpl: &TemplateBlock) -> Vec<PortWiring> {
         }
     }
     out
-}
-
-fn collect_component_names(tmpl: &TemplateBlock) -> HashSet<String> {
-    let mut names = HashSet::new();
-    for (_, line) in &tmpl.lines {
-        if let Some(caps) = RE_COMPONENT_DECL.captures(line) {
-            names.insert(caps[1].to_string());
-        }
-    }
-    names
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -372,6 +386,8 @@ fn strip_comments_preserve_lines(source: &str) -> String {
     let mut i = 0;
     let mut in_block = false;
     let mut in_line = false;
+    let mut in_string: Option<char> = None;
+    let mut escaped = false;
 
     while i < chars.len() {
         let c = chars[i];
@@ -391,11 +407,33 @@ fn strip_comments_preserve_lines(source: &str) -> String {
             continue;
         }
 
+        if let Some(quote) = in_string {
+            result.push(c);
+
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == quote {
+                in_string = None;
+            }
+
+            i += 1;
+            continue;
+        }
+
         if in_line {
             if c == '\n' {
                 in_line = false;
                 result.push('\n');
             }
+            i += 1;
+            continue;
+        }
+
+        if c == '"' || c == '\'' {
+            in_string = Some(c);
+            result.push(c);
             i += 1;
             continue;
         }
