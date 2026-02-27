@@ -83,10 +83,21 @@ pub fn load_config() -> Config {
     ];
 
     for path in &paths {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            if let Ok(config) = toml::from_str(&content) {
-                return config;
-            }
+        match std::fs::read_to_string(path) {
+            Ok(content) => match toml::from_str(&content) {
+                Ok(config) => return config,
+                Err(err) => eprintln!(
+                    "Warning: Failed to parse config at {}: {}. Using defaults.",
+                    path.display(),
+                    err
+                ),
+            },
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => eprintln!(
+                "Warning: Failed to read config at {}: {}. Using defaults.",
+                path.display(),
+                err
+            ),
         }
     }
 

@@ -1,8 +1,8 @@
 use anyhow::Result;
 use std::path::PathBuf;
 use zk_pattern_matcher::{
-    load_config, load_ignore_patterns, load_pattern_library, OutputFormat, OutputFormatter,
-    Scanner, Severity,
+    load_config, load_ignore_patterns, load_pattern_library_with_limits, severity_icon,
+    LoaderLimits, MatcherLimits, OutputFormat, OutputFormatter, Scanner, Severity,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -19,6 +19,7 @@ fn print_usage() {
     eprintln!("    --format <json|text|sarif>  Output format (default: text)");
     eprintln!("    -r, --recursive             Scan directories recursively");
     eprintln!("    --ignore <pattern>          Ignore files matching pattern");
+    eprintln!("    --semantic                  Enable semantic analysis");
     eprintln!("    -h, --help                  Print help information");
     eprintln!("    -V, --version               Print version information");
 }
@@ -29,22 +30,19 @@ fn usage_error(message: &str) -> ! {
     std::process::exit(2);
 }
 
-fn severity_icon(severity: &Severity, show_icons: bool) -> String {
-    if !show_icons {
-        return String::new();
-    }
-    match severity {
-        Severity::Critical => "🔴 ",
-        Severity::High => "🟠 ",
-        Severity::Medium => "🟡 ",
-        Severity::Low => "🔵 ",
-        Severity::Info => "ℹ️  ",
-    }
-    .to_string()
-}
-
 fn main() -> Result<()> {
     let config = load_config();
+    let loader_limits = LoaderLimits {
+        max_file_size: config.limits.max_pattern_file_size as u64,
+        ..LoaderLimits::default()
+    };
+    let matcher_limits = MatcherLimits {
+        max_patterns: config.limits.max_patterns,
+        max_matches: config.limits.max_matches,
+        max_file_size: config.limits.max_file_size as u64,
+        ..MatcherLimits::default()
+    };
+
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 2 {
@@ -64,6 +62,7 @@ fn main() -> Result<()> {
 
     let mut format = config.output.default_format.as_str();
     let mut recursive = false;
+    let mut semantic = false;
     let mut custom_ignore: Vec<String> = Vec::new();
     let mut arg_offset = 1;
 
@@ -76,6 +75,10 @@ fn main() -> Result<()> {
             "--format" => usage_error("missing value for --format"),
             "-r" | "--recursive" => {
                 recursive = true;
+                arg_offset += 1;
+            }
+            "--semantic" => {
+                semantic = true;
                 arg_offset += 1;
             }
             "--ignore" if arg_offset + 1 < args.len() => {
@@ -100,7 +103,7 @@ fn main() -> Result<()> {
                 usage_error("validate requires <pattern.yaml>");
             }
             let pattern_path = PathBuf::from(&args[arg_offset + 1]);
-            let library = load_pattern_library(&pattern_path)?;
+            let library = load_pattern_library_with_limits(&pattern_path, loader_limits)?;
             println!(
                 "✓ Valid pattern library with {} patterns",
                 library.patterns.len()
@@ -115,13 +118,13 @@ fn main() -> Result<()> {
                 usage_error("list requires <pattern.yaml>");
             }
             let pattern_path = PathBuf::from(&args[arg_offset + 1]);
-            let library = load_pattern_library(&pattern_path)?;
+            let library = load_pattern_library_with_limits(&pattern_path, loader_limits)?;
 
             for pattern in &library.patterns {
                 let severity = pattern.severity.as_ref().unwrap_or(&Severity::Info);
                 println!(
                     "{}{} [{:?}] - {}",
-                    severity_icon(severity, config.output.show_icons),
+                    severity_icon(config.output.show_icons, severity),
                     pattern.id,
                     severity,
                     pattern.message
@@ -138,8 +141,10 @@ fn main() -> Result<()> {
             let pattern_path = PathBuf::from(&args[arg_offset]);
             let target_path = PathBuf::from(&args[arg_offset + 1]);
 
-            let library = load_pattern_library(&pattern_path)?;
-            let matcher = zk_pattern_matcher::PatternMatcher::new(library)?;
+            let library = load_pattern_library_with_limits(&pattern_path, loader_limits)?;
+            let matcher =
+                zk_pattern_matcher::PatternMatcher::new_with_limits(library, matcher_limits)?
+                    .with_semantic(semantic);
 
             let mut ignore_patterns = load_ignore_patterns();
             ignore_patterns.extend(custom_ignore);

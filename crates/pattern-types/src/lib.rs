@@ -86,7 +86,7 @@ pub enum Oracle {
     ShouldHold,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PatternMatch {
     pub pattern_id: String,
     pub message: String,
@@ -94,7 +94,7 @@ pub struct PatternMatch {
     pub location: MatchLocation,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MatchLocation {
     pub line: usize,
     pub column: usize,

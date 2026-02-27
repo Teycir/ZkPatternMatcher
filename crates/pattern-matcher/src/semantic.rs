@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -32,24 +33,22 @@ pub struct SemanticFinding {
 // Lazy-compiled regex patterns
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn re_unconstrained() -> Regex {
-    Regex::new(r"^\s*(\w[\w\[\]]*)\s*<--").unwrap()
-}
-fn re_constrained() -> Regex {
-    Regex::new(r"^\s*(\w[\w\[\]]*)\s*<==").unwrap()
-}
-fn re_equality() -> Regex {
-    Regex::new(r"^\s*(\w[\w\[\]]*)\s*===").unwrap()
-}
-fn re_port_wiring() -> Regex {
-    Regex::new(r"(\w+)\.(\w+)\s*<==\s*(\w+)").unwrap()
-}
-fn re_template_start() -> Regex {
-    Regex::new(r"^\s*template\s+(\w+)\s*\(").unwrap()
-}
-fn re_component_decl() -> Regex {
-    Regex::new(r"^\s*component\s+(\w+)\s*=\s*(\w+)").unwrap()
-}
+static RE_UNCONSTRAINED: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*<--").expect("valid regex"));
+static RE_CONSTRAINED: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*<==").expect("valid regex"));
+static RE_EQUALITY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*===").expect("valid regex"));
+static RE_PORT_WIRING: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(\w+)\.(\w+)\s*<==\s*(\w+)").expect("valid regex"));
+static RE_TEMPLATE_START: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*template\s+(\w+)\s*\(").expect("valid regex"));
+static RE_COMPONENT_DECL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*component\s+(\w+)\s*=\s*(\w+)").expect("valid regex"));
+static RE_VAR_DECL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*var\s+(\w+)").expect("valid regex"));
+static RE_SELF_EQ: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*(\w+)\s*===\s*(\w+)\s*;").expect("valid regex"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -58,7 +57,8 @@ fn re_component_decl() -> Regex {
 /// Run the full two-pass semantic scan on a single `.circom` source file.
 /// Returns a list of `SemanticFinding`s, one per detected issue.
 pub fn two_pass_scan(source: &str) -> Vec<SemanticFinding> {
-    let templates = split_into_templates(source);
+    let stripped_source = strip_comments_preserve_lines(source);
+    let templates = split_into_templates(&stripped_source);
     let mut findings = Vec::new();
 
     for tmpl in &templates {
@@ -81,7 +81,6 @@ struct TemplateBlock {
 /// Split source into per-template blocks so that signal names don't bleed
 /// across template boundaries. Uses a brace-depth counter to find boundaries.
 fn split_into_templates(source: &str) -> Vec<TemplateBlock> {
-    let re_start = re_template_start();
     let mut templates: Vec<TemplateBlock> = Vec::new();
     let mut current: Option<TemplateBlock> = None;
     let mut depth: i32 = 0;
@@ -90,7 +89,7 @@ fn split_into_templates(source: &str) -> Vec<TemplateBlock> {
         let line_no = i + 1;
 
         // Detect template header
-        if let Some(caps) = re_start.captures(line) {
+        if let Some(caps) = RE_TEMPLATE_START.captures(line) {
             if let Some(prev) = current.take() {
                 templates.push(prev);
             }
@@ -160,21 +159,18 @@ fn scan_template(tmpl: &TemplateBlock) -> Vec<SemanticFinding> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn collect_assignments(tmpl: &TemplateBlock) -> Vec<SignalAssignment> {
-    let re_unc = re_unconstrained();
-    let re_con = re_constrained();
-    let re_eql = re_equality();
     let mut out = Vec::new();
 
     for (line_no, line) in &tmpl.lines {
         let stripped = strip_comment(line);
 
-        if let Some(caps) = re_unc.captures(&stripped) {
+        if let Some(caps) = RE_UNCONSTRAINED.captures(&stripped) {
             out.push(SignalAssignment {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
                 kind: AssignKind::Unconstrained,
             });
-        } else if let Some(caps) = re_con.captures(&stripped) {
+        } else if let Some(caps) = RE_CONSTRAINED.captures(&stripped) {
             out.push(SignalAssignment {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
@@ -182,7 +178,7 @@ fn collect_assignments(tmpl: &TemplateBlock) -> Vec<SignalAssignment> {
             });
         }
 
-        if let Some(caps) = re_eql.captures(&stripped) {
+        if let Some(caps) = RE_EQUALITY.captures(&stripped) {
             out.push(SignalAssignment {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
@@ -217,12 +213,11 @@ struct PortWiring {
 }
 
 fn collect_port_wirings(tmpl: &TemplateBlock) -> Vec<PortWiring> {
-    let re = re_port_wiring();
     let mut out = Vec::new();
 
     for (line_no, line) in &tmpl.lines {
         let stripped = strip_comment(line);
-        for caps in re.captures_iter(&stripped) {
+        for caps in RE_PORT_WIRING.captures_iter(&stripped) {
             out.push(PortWiring {
                 line_no: *line_no,
                 component: caps[1].to_string(),
@@ -235,10 +230,9 @@ fn collect_port_wirings(tmpl: &TemplateBlock) -> Vec<PortWiring> {
 }
 
 fn collect_component_names(tmpl: &TemplateBlock) -> HashSet<String> {
-    let re = re_component_decl();
     let mut names = HashSet::new();
     for (_, line) in &tmpl.lines {
-        if let Some(caps) = re.captures(line) {
+        if let Some(caps) = RE_COMPONENT_DECL.captures(line) {
             names.insert(caps[1].to_string());
         }
     }
@@ -320,22 +314,19 @@ fn check_signal_aliasing(wirings: &[PortWiring]) -> Vec<SemanticFinding> {
 }
 
 fn check_var_equality_constraint(lines: &[(usize, String)]) -> Vec<SemanticFinding> {
-    let re_var_decl = Regex::new(r"^\s*var\s+(\w+)").unwrap();
-    let re_self_eq = Regex::new(r"^\s*(\w+)\s*===\s*(\w+)\s*;").unwrap();
-
     let mut var_names: HashSet<String> = HashSet::new();
     let mut findings = Vec::new();
 
     for (_, line) in lines {
         let s = strip_comment(line);
-        if let Some(caps) = re_var_decl.captures(&s) {
+        if let Some(caps) = RE_VAR_DECL.captures(&s) {
             var_names.insert(caps[1].to_string());
         }
     }
 
     for (line_no, line) in lines {
         let s = strip_comment(line);
-        if let Some(caps) = re_self_eq.captures(&s) {
+        if let Some(caps) = RE_SELF_EQ.captures(&s) {
             let lhs = &caps[1];
             let rhs = &caps[2];
 
@@ -375,6 +366,59 @@ fn check_var_equality_constraint(lines: &[(usize, String)]) -> Vec<SemanticFindi
     findings
 }
 
+fn strip_comments_preserve_lines(source: &str) -> String {
+    let mut result = String::with_capacity(source.len());
+    let chars: Vec<char> = source.chars().collect();
+    let mut i = 0;
+    let mut in_block = false;
+    let mut in_line = false;
+
+    while i < chars.len() {
+        let c = chars[i];
+        let next = chars.get(i + 1).copied();
+
+        if in_block {
+            if c == '*' && next == Some('/') {
+                in_block = false;
+                i += 2;
+                continue;
+            }
+
+            if c == '\n' {
+                result.push('\n');
+            }
+            i += 1;
+            continue;
+        }
+
+        if in_line {
+            if c == '\n' {
+                in_line = false;
+                result.push('\n');
+            }
+            i += 1;
+            continue;
+        }
+
+        if c == '/' && next == Some('*') {
+            in_block = true;
+            i += 2;
+            continue;
+        }
+
+        if c == '/' && next == Some('/') {
+            in_line = true;
+            i += 2;
+            continue;
+        }
+
+        result.push(c);
+        i += 1;
+    }
+
+    result
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Formatting helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -395,4 +439,27 @@ pub fn format_findings(findings: &[SemanticFinding]) -> String {
         ));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ignores_unconstrained_marker_inside_block_comments() {
+        let source = r#"
+        template T() {
+            /*
+                fake <-- assignment
+            */
+            signal x;
+            x <== 1;
+        }
+        "#;
+
+        let findings = two_pass_scan(source);
+        assert!(findings
+            .iter()
+            .all(|f| f.finding_id != "orphaned_unconstrained_assignment"));
+    }
 }

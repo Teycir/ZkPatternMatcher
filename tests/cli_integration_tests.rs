@@ -227,3 +227,41 @@ fn test_cli_scan_requires_target_argument_without_panic() {
     assert!(stderr.contains("scan requires <pattern.yaml> <target>"));
     assert!(!stderr.contains("panicked at"));
 }
+
+#[test]
+fn test_cli_semantic_flag_emits_semantic_findings() {
+    let pattern_file = "/tmp/zkpm_semantic_empty.yaml";
+    let circuit_file = "/tmp/zkpm_semantic_case.circom";
+
+    std::fs::write(pattern_file, "patterns: []\ninvariants: []\n").unwrap();
+    std::fs::write(
+        circuit_file,
+        "pragma circom 2.0.0;\n\
+         template T() {\n\
+             var x;\n\
+             x === x;\n\
+         }\n\
+         component main = T();\n",
+    )
+    .unwrap();
+
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--bin",
+            "zkpm",
+            "--",
+            "--semantic",
+            pattern_file,
+            circuit_file,
+        ])
+        .output()
+        .expect("Failed to execute zkpm");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("self_equality_constraint"));
+    assert!(stdout.contains("constraint_on_var"));
+
+    std::fs::remove_file(pattern_file).ok();
+    std::fs::remove_file(circuit_file).ok();
+}

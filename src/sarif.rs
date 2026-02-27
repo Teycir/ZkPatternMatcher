@@ -107,7 +107,7 @@ fn build_report(results: Vec<SarifResult>) -> SarifReport {
                 driver: SarifDriver {
                     name: "zkpm".to_string(),
                     version: env!("CARGO_PKG_VERSION").to_string(),
-                    information_uri: "https://github.com/teycir/ZkPatternMatcher".to_string(),
+                    information_uri: "https://github.com/Teycir/ZkPatternMatcher".to_string(),
                 },
             },
             results,

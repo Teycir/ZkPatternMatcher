@@ -53,6 +53,19 @@ pub enum OutputFormat {
     Sarif,
 }
 
+pub fn severity_icon(show_icons: bool, severity: &Severity) -> &'static str {
+    if !show_icons {
+        return "";
+    }
+    match severity {
+        Severity::Critical => "🔴 ",
+        Severity::High => "🟠 ",
+        Severity::Medium => "🟡 ",
+        Severity::Low => "🔵 ",
+        Severity::Info => "ℹ️  ",
+    }
+}
+
 pub struct OutputFormatter {
     format: OutputFormat,
     show_icons: bool,
@@ -79,18 +92,8 @@ impl OutputFormatter {
         }
     }
 
-    fn severity_icon(&self, severity: &Severity) -> String {
-        if !self.show_icons {
-            return String::new();
-        }
-        match severity {
-            Severity::Critical => "🔴 ",
-            Severity::High => "🟠 ",
-            Severity::Medium => "🟡 ",
-            Severity::Low => "🔵 ",
-            Severity::Info => "ℹ️  ",
-        }
-        .to_string()
+    fn severity_icon(&self, severity: &Severity) -> &'static str {
+        severity_icon(self.show_icons, severity)
     }
 
     fn output_text(&self, matches: &[PatternMatch]) -> Result<()> {

@@ -4,6 +4,23 @@ use anyhow::{Context, Result};
 use pattern_types::PatternLibrary;
 use std::path::Path;
 
+#[derive(Debug, Clone, Copy)]
+pub struct LoaderLimits {
+    pub max_file_size: u64,
+    pub max_lines: usize,
+    pub max_libraries: usize,
+}
+
+impl Default for LoaderLimits {
+    fn default() -> Self {
+        Self {
+            max_file_size: 1024 * 1024,
+            max_lines: 10_000,
+            max_libraries: 100,
+        }
+    }
+}
+
 /// Loads a pattern library from a YAML file.
 ///
 /// # Security Limits
@@ -25,16 +42,21 @@ use std::path::Path;
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
-    const MAX_FILE_SIZE: u64 = 1024 * 1024; // 1MB limit for YAML
+    load_pattern_library_with_limits(path, LoaderLimits::default())
+}
 
+pub fn load_pattern_library_with_limits(
+    path: &Path,
+    limits: LoaderLimits,
+) -> Result<PatternLibrary> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("Failed to read metadata: {}", path.display()))?;
 
-    if metadata.len() > MAX_FILE_SIZE {
+    if metadata.len() > limits.max_file_size {
         anyhow::bail!(
             "Pattern file too large: {} bytes (max {})",
             metadata.len(),
-            MAX_FILE_SIZE
+            limits.max_file_size
         );
     }
 
@@ -42,10 +64,12 @@ pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
         .with_context(|| format!("Failed to read pattern file: {}", path.display()))?;
 
     // Limit YAML depth to prevent YAML bombs
-    if content.matches('\n').count() > 10000 {
+    let line_count = content.lines().count();
+    if line_count > limits.max_lines {
         anyhow::bail!(
-            "Pattern file too complex: {} lines (max 10000)",
-            content.matches('\n').count()
+            "Pattern file too complex: {} lines (max {})",
+            line_count,
+            limits.max_lines
         );
     }
 
@@ -63,13 +87,18 @@ pub fn load_pattern_library(path: &Path) -> Result<PatternLibrary> {
 /// # Errors
 /// Returns an error if any library fails to load or limit is exceeded.
 pub fn load_pattern_libraries(paths: &[&Path]) -> Result<PatternLibrary> {
-    const MAX_LIBRARIES: usize = 100;
+    load_pattern_libraries_with_limits(paths, LoaderLimits::default())
+}
 
-    if paths.len() > MAX_LIBRARIES {
+pub fn load_pattern_libraries_with_limits(
+    paths: &[&Path],
+    limits: LoaderLimits,
+) -> Result<PatternLibrary> {
+    if paths.len() > limits.max_libraries {
         anyhow::bail!(
             "Too many pattern libraries: {} (max {})",
             paths.len(),
-            MAX_LIBRARIES
+            limits.max_libraries
         );
     }
 
@@ -77,7 +106,7 @@ pub fn load_pattern_libraries(paths: &[&Path]) -> Result<PatternLibrary> {
     let mut all_invariants = Vec::new();
 
     for path in paths {
-        let lib = load_pattern_library(path)?;
+        let lib = load_pattern_library_with_limits(path, limits)?;
         all_patterns.extend(lib.patterns);
         all_invariants.extend(lib.invariants);
     }

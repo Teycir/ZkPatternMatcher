@@ -128,7 +128,25 @@ impl IgnoreRule {
                         regex.is_match(component.as_os_str().to_string_lossy().as_ref())
                     })
                 } else {
-                    regex.is_match(path_str.as_ref())
+                    let normalized = path_str.replace('\\', "/");
+                    if regex.is_match(&normalized) {
+                        return true;
+                    }
+
+                    let mut suffix = normalized.trim_start_matches('/');
+                    loop {
+                        if regex.is_match(suffix) {
+                            return true;
+                        }
+
+                        if let Some(pos) = suffix.find('/') {
+                            suffix = &suffix[pos + 1..];
+                        } else {
+                            break;
+                        }
+                    }
+
+                    false
                 }
             }
             IgnoreRule::Literal {
@@ -148,10 +166,18 @@ impl IgnoreRule {
 
 fn glob_to_regex(glob: &str) -> std::result::Result<Regex, regex::Error> {
     let mut regex = String::from("^");
+    let mut chars = glob.chars().peekable();
 
-    for ch in glob.chars() {
+    while let Some(ch) = chars.next() {
         match ch {
-            '*' => regex.push_str("[^/]*"),
+            '*' => {
+                if chars.peek() == Some(&'*') {
+                    chars.next();
+                    regex.push_str(".*");
+                } else {
+                    regex.push_str("[^/]*");
+                }
+            }
             '?' => regex.push_str("[^/]"),
             '.' | '+' | '(' | ')' | '|' | '^' | '$' | '{' | '}' | '[' | ']' | '\\' => {
                 regex.push('\\');
@@ -191,6 +217,20 @@ mod tests {
         assert!(!scanner.should_ignore(Path::new("/tmp/aaa")));
         assert!(scanner.should_ignore(Path::new("/tmp/liba.a")));
         assert!(scanner.should_ignore(Path::new("/tmp/obj.o")));
+    }
+
+    #[test]
+    fn doublestar_glob_matches_nested_paths() {
+        let matcher = PatternMatcher::new(PatternLibrary {
+            patterns: vec![],
+            invariants: vec![],
+        })
+        .unwrap();
+
+        let scanner = Scanner::new(matcher, vec!["tests/**/*.circom".to_string()]);
+
+        assert!(scanner.should_ignore(Path::new("/tmp/tests/a/b.circom")));
+        assert!(!scanner.should_ignore(Path::new("/tmp/tests/a/b.txt")));
     }
 
     #[test]
