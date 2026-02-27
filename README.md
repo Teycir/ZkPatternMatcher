@@ -4,7 +4,7 @@
 
 **Circuit Code → YAML Patterns → Vulnerabilities Detected**
 
-[![CI](https://github.com/Teycir/ZkPatternMatcher/workflows/CI/badge.svg)](https://github.com/Teycir/ZkPatternMatcher/actions)
+[![CI](https://github.com/Teycir/ZkPatternMatcher/actions/workflows/ci.yml/badge.svg)](https://github.com/Teycir/ZkPatternMatcher/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
