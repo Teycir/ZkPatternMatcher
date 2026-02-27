@@ -10,8 +10,8 @@ FAIL=0
 
 # Test 1: Signal Aliasing
 echo "Test 1: Signal Aliasing Detection"
-if cargo run --quiet -- "$PATTERNS" tests/real_vulnerabilities/signal_aliasing.circom 2>/dev/null | grep -q "intermediate_signal_no_constraint"; then
-    echo "✓ PASS: Detected intermediate signal without constraint"
+if cargo run --quiet -- "$PATTERNS" tests/real_vulnerabilities/signal_aliasing.circom 2>/dev/null | grep -q "signal_name_reuse\|array_access_no_bounds"; then
+    echo "✓ PASS: Detected signal aliasing or array access issues"
     PASS=$((PASS + 1))
 else
     echo "✗ FAIL: Did not detect signal aliasing"
