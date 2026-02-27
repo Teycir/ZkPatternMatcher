@@ -23,6 +23,12 @@ fn print_usage() {
     eprintln!("    -V, --version               Print version information");
 }
 
+fn usage_error(message: &str) -> ! {
+    eprintln!("Error: {message}\n");
+    print_usage();
+    std::process::exit(2);
+}
+
 fn severity_icon(severity: &Severity, show_icons: bool) -> String {
     if !show_icons {
         return String::new();
@@ -67,6 +73,7 @@ fn main() -> Result<()> {
                 format = &args[arg_offset + 1];
                 arg_offset += 2;
             }
+            "--format" => usage_error("missing value for --format"),
             "-r" | "--recursive" => {
                 recursive = true;
                 arg_offset += 1;
@@ -75,14 +82,23 @@ fn main() -> Result<()> {
                 custom_ignore.push(args[arg_offset + 1].clone());
                 arg_offset += 2;
             }
+            "--ignore" => usage_error("missing value for --ignore"),
+            arg if arg.starts_with('-') => usage_error(&format!("unknown option: {arg}")),
             _ => break,
         }
+    }
+
+    if arg_offset >= args.len() {
+        usage_error("missing command or <pattern.yaml> argument");
     }
 
     let command = &args[arg_offset];
 
     match command.as_str() {
         "validate" => {
+            if arg_offset + 1 >= args.len() {
+                usage_error("validate requires <pattern.yaml>");
+            }
             let pattern_path = PathBuf::from(&args[arg_offset + 1]);
             let library = load_pattern_library(&pattern_path)?;
             println!(
@@ -95,6 +111,9 @@ fn main() -> Result<()> {
             Ok(())
         }
         "list" => {
+            if arg_offset + 1 >= args.len() {
+                usage_error("list requires <pattern.yaml>");
+            }
             let pattern_path = PathBuf::from(&args[arg_offset + 1]);
             let library = load_pattern_library(&pattern_path)?;
 
@@ -113,6 +132,9 @@ fn main() -> Result<()> {
             Ok(())
         }
         _ => {
+            if arg_offset + 1 >= args.len() {
+                usage_error("scan requires <pattern.yaml> <target>");
+            }
             let pattern_path = PathBuf::from(&args[arg_offset]);
             let target_path = PathBuf::from(&args[arg_offset + 1]);
 

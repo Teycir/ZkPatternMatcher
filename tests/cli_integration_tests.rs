@@ -190,3 +190,40 @@ fn test_cli_scan_clean_circuit_succeeds() {
 
     std::fs::remove_file("/tmp/clean_test.circom").ok();
 }
+
+#[test]
+fn test_cli_validate_requires_pattern_argument_without_panic() {
+    let output = Command::new("cargo")
+        .args(["run", "--bin", "zkpm", "--", "validate"])
+        .output()
+        .expect("Failed to execute zkpm");
+
+    assert!(!output.status.success(), "Should fail when arg is missing");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("validate requires <pattern.yaml>"));
+    assert!(!stderr.contains("panicked at"));
+}
+
+#[test]
+fn test_cli_scan_requires_target_argument_without_panic() {
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--bin",
+            "zkpm",
+            "--",
+            "patterns/real_vulnerabilities.yaml",
+        ])
+        .output()
+        .expect("Failed to execute zkpm");
+
+    assert!(
+        !output.status.success(),
+        "Should fail when target is missing"
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("scan requires <pattern.yaml> <target>"));
+    assert!(!stderr.contains("panicked at"));
+}

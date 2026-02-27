@@ -1,97 +1,90 @@
 #!/usr/bin/env bash
-# Integration test: Validate all patterns against real vulnerable circuits
-# Tests fancy-regex, semantic analysis, and all 8 pattern files
+# Integration smoke tests for the current zkpm CLI and stable pattern packs.
 
 set -e
 
 PATTERNS_DIR="patterns"
 CIRCUITS_DIR="tests/real_vulnerabilities"
 RESULTS_FILE="integration_test_results.txt"
+PASS=0
+FAIL=0
 
 echo "=== ZkPatternMatcher Integration Test ===" > "$RESULTS_FILE"
-echo "Testing 32 patterns across 8 YAML files" >> "$RESULTS_FILE"
+echo "Testing stable pattern packs with current CLI interface" >> "$RESULTS_FILE"
 echo "" >> "$RESULTS_FILE"
 
-# Test 1: Signal aliasing patterns (3 patterns)
-echo "[1/8] Testing signal_aliasing.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
+run_case() {
+  local name="$1"
+  local pattern="$2"
+  local target="$3"
+  local expected="$4"
+
+  echo "$name" | tee -a "$RESULTS_FILE"
+  local output
+  output=$(cargo run --release --bin zkpm -- "$pattern" "$target" 2>&1 || true)
+  echo "$output" >> "$RESULTS_FILE"
+
+  if grep -Fq "$expected" <<<"$output"; then
+    echo "✓ PASS: found '$expected'" | tee -a "$RESULTS_FILE"
+    PASS=$((PASS + 1))
+  else
+    echo "✗ FAIL: missing '$expected'" | tee -a "$RESULTS_FILE"
+    FAIL=$((FAIL + 1))
+  fi
+  echo "" >> "$RESULTS_FILE"
+}
+
+run_case \
+  "[1/5] Signal aliasing pack" \
+  "$PATTERNS_DIR/signal_aliasing.yaml" \
   "$CIRCUITS_DIR/signal_aliasing.circom" \
-  --pattern "$PATTERNS_DIR/signal_aliasing.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
+  "intermediate_array_unconstrained"
 
-# Test 2: Equality check patterns (5 patterns)
-echo "[2/8] Testing equality_check.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/equality_no_constraint.circom" \
-  --pattern "$PATTERNS_DIR/equality_check.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
-
-# Test 3: Missing IsZero patterns (3 patterns)
-echo "[3/8] Testing missing_iszero.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/missing_iszero.circom" \
-  --pattern "$PATTERNS_DIR/missing_iszero.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
-
-# Test 4: Unchecked division patterns (3 patterns)
-echo "[4/8] Testing unchecked_division.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
+run_case \
+  "[2/5] Unchecked division pack" \
+  "$PATTERNS_DIR/unchecked_division.yaml" \
   "$CIRCUITS_DIR/unchecked_division.circom" \
-  --pattern "$PATTERNS_DIR/unchecked_division.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
+  "division_operator_detected"
 
-# Test 5: Array bounds patterns (3 patterns)
-echo "[5/8] Testing array_bounds.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/array_no_bounds.circom" \
-  --pattern "$PATTERNS_DIR/array_bounds.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
+run_case \
+  "[3/5] Real vulnerabilities pack (underconstrained)" \
+  "$PATTERNS_DIR/real_vulnerabilities.yaml" \
+  "$CIRCUITS_DIR/underconstrained_multiplier.circom" \
+  "underconstrained_assignment"
 
-# Test 6: Public input validation patterns (5 patterns)
-echo "[6/8] Testing public_input_validation.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/missing_range_check.circom" \
-  --pattern "$PATTERNS_DIR/public_input_validation.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
-
-# Test 7: Merkle path patterns (5 patterns)
-echo "[7/8] Testing merkle_path.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/underconstrained_merkle_real.circom" \
-  --pattern "$PATTERNS_DIR/merkle_path.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
-
-# Test 8: Commitment soundness patterns (6 patterns)
-echo "[8/8] Testing commitment_soundness.yaml..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
+run_case \
+  "[4/5] Real vulnerabilities pack (weak nullifier)" \
+  "$PATTERNS_DIR/real_vulnerabilities.yaml" \
   "$CIRCUITS_DIR/weak_nullifier.circom" \
-  --pattern "$PATTERNS_DIR/commitment_soundness.yaml" \
-  2>&1 | tee -a "$RESULTS_FILE"
+  "weak_nullifier_pattern"
 
-# Test semantic analysis (2-pass scan)
-echo "" >> "$RESULTS_FILE"
-echo "=== Semantic Analysis Test ===" >> "$RESULTS_FILE"
-echo "Testing orphaned_unconstrained_assignment detection..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/signal_aliasing.circom" \
-  --semantic \
-  2>&1 | tee -a "$RESULTS_FILE"
+run_case \
+  "[5/5] Production pack marker detection" \
+  "$PATTERNS_DIR/production.yaml" \
+  "$CIRCUITS_DIR/nullifier_collision_real.circom" \
+  "vulnerability_marker"
 
-echo "" >> "$RESULTS_FILE"
-echo "Testing component_input_aliasing detection..." | tee -a "$RESULTS_FILE"
-cargo run --release --bin zkpm -- scan \
-  "$CIRCUITS_DIR/merkle_path/unconstrained_direction_vuln.circom" \
-  --semantic \
-  2>&1 | tee -a "$RESULTS_FILE"
+echo "[SARIF] Recursive scan smoke test" | tee -a "$RESULTS_FILE"
+sarif_output=$(cargo run --release --bin zkpm -- --format sarif -r \
+  "$PATTERNS_DIR/real_vulnerabilities.yaml" "$CIRCUITS_DIR" 2>&1 || true)
+echo "$sarif_output" >> "$RESULTS_FILE"
+if grep -Fq "\"ruleId\"" <<<"$sarif_output" && grep -Fq "\"uri\"" <<<"$sarif_output"; then
+  echo "✓ PASS: SARIF contains rule IDs and artifact URIs" | tee -a "$RESULTS_FILE"
+  PASS=$((PASS + 1))
+else
+  echo "✗ FAIL: SARIF missing expected fields" | tee -a "$RESULTS_FILE"
+  FAIL=$((FAIL + 1))
+fi
 
-# Summary
-echo "" >> "$RESULTS_FILE"
-echo "=== Integration Test Complete ===" >> "$RESULTS_FILE"
-echo "Results saved to: $RESULTS_FILE"
-echo ""
-echo "Expected findings:"
-echo "  - signal_aliasing.yaml: component_port_assignment, intermediate_array_unconstrained"
-echo "  - equality_check.yaml: comparison_instead_of_constraint, bare_hint_assignment"
-echo "  - merkle_path.yaml: unconstrained_path_direction, merkle_root_comparison_not_constraint"
-echo "  - commitment_soundness.yaml: nullifier_without_secret, commitment_not_exposed"
-echo "  - Semantic: orphaned_unconstrained_assignment, component_input_aliasing"
+echo "" | tee -a "$RESULTS_FILE"
+echo "=== Integration Test Complete ===" | tee -a "$RESULTS_FILE"
+echo "Results saved to: $RESULTS_FILE" | tee -a "$RESULTS_FILE"
+echo "Passed: $PASS  Failed: $FAIL" | tee -a "$RESULTS_FILE"
+
+if [ "$FAIL" -eq 0 ]; then
+  echo "✓ ALL INTEGRATION TESTS PASSED"
+  exit 0
+else
+  echo "✗ INTEGRATION TESTS FAILED"
+  exit 1
+fi

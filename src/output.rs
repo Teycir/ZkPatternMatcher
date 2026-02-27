@@ -168,14 +168,8 @@ impl OutputFormatter {
     }
 
     fn output_sarif_recursive(&self, results: &[(PathBuf, Vec<PatternMatch>)]) -> Result<()> {
-        let all_matches: Vec<PatternMatch> = results
-            .iter()
-            .flat_map(|(_, matches)| matches.clone())
-            .collect();
-        let file_path = results
-            .first()
-            .map(|(p, _)| p.to_string_lossy().to_string())
-            .unwrap_or_default();
-        self.output_sarif(&all_matches, &file_path)
+        let report = sarif::to_sarif_recursive(results);
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        Ok(())
     }
 }

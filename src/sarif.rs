@@ -1,5 +1,6 @@
 use crate::{PatternMatch, Severity};
 use serde::Serialize;
+use std::path::PathBuf;
 
 #[derive(Serialize)]
 pub struct SarifReport {
@@ -76,29 +77,28 @@ fn severity_to_sarif_level(severity: &Severity) -> &'static str {
     }
 }
 
-pub fn to_sarif(matches: &[PatternMatch], file_path: &str) -> SarifReport {
-    let results: Vec<SarifResult> = matches
-        .iter()
-        .map(|m| SarifResult {
-            rule_id: m.pattern_id.clone(),
-            level: severity_to_sarif_level(&m.severity).to_string(),
-            message: SarifMessage {
-                text: m.message.clone(),
-            },
-            locations: vec![SarifLocation {
-                physical_location: SarifPhysicalLocation {
-                    artifact_location: SarifArtifactLocation {
-                        uri: file_path.to_string(),
-                    },
-                    region: SarifRegion {
-                        start_line: m.location.line,
-                        start_column: m.location.column,
-                    },
+fn build_result(pattern_match: &PatternMatch, file_path: &str) -> SarifResult {
+    SarifResult {
+        rule_id: pattern_match.pattern_id.clone(),
+        level: severity_to_sarif_level(&pattern_match.severity).to_string(),
+        message: SarifMessage {
+            text: pattern_match.message.clone(),
+        },
+        locations: vec![SarifLocation {
+            physical_location: SarifPhysicalLocation {
+                artifact_location: SarifArtifactLocation {
+                    uri: file_path.to_string(),
                 },
-            }],
-        })
-        .collect();
+                region: SarifRegion {
+                    start_line: pattern_match.location.line,
+                    start_column: pattern_match.location.column,
+                },
+            },
+        }],
+    }
+}
 
+fn build_report(results: Vec<SarifResult>) -> SarifReport {
     SarifReport {
         version: "2.1.0".to_string(),
         schema: "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json".to_string(),
@@ -112,5 +112,77 @@ pub fn to_sarif(matches: &[PatternMatch], file_path: &str) -> SarifReport {
             },
             results,
         }],
+    }
+}
+
+pub fn to_sarif(matches: &[PatternMatch], file_path: &str) -> SarifReport {
+    let results: Vec<SarifResult> = matches.iter().map(|m| build_result(m, file_path)).collect();
+
+    build_report(results)
+}
+
+pub fn to_sarif_recursive(results_by_file: &[(PathBuf, Vec<PatternMatch>)]) -> SarifReport {
+    let results = results_by_file
+        .iter()
+        .flat_map(|(path, matches)| {
+            let file_path = path.to_string_lossy().to_string();
+            matches.iter().map(move |m| build_result(m, &file_path))
+        })
+        .collect();
+
+    build_report(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::MatchLocation;
+
+    #[test]
+    fn recursive_sarif_preserves_each_file_uri() {
+        let matches_by_file = vec![
+            (
+                PathBuf::from("/tmp/a.circom"),
+                vec![PatternMatch {
+                    pattern_id: "rule_a".to_string(),
+                    message: "A".to_string(),
+                    severity: Severity::High,
+                    location: MatchLocation {
+                        line: 1,
+                        column: 1,
+                        matched_text: "<--".to_string(),
+                    },
+                }],
+            ),
+            (
+                PathBuf::from("/tmp/b.circom"),
+                vec![PatternMatch {
+                    pattern_id: "rule_b".to_string(),
+                    message: "B".to_string(),
+                    severity: Severity::Medium,
+                    location: MatchLocation {
+                        line: 2,
+                        column: 3,
+                        matched_text: "==".to_string(),
+                    },
+                }],
+            ),
+        ];
+
+        let report = to_sarif_recursive(&matches_by_file);
+        let json = serde_json::to_value(report).unwrap();
+        let results = json["runs"][0]["results"].as_array().unwrap();
+
+        let uris: Vec<&str> = results
+            .iter()
+            .map(|result| {
+                result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+                    .as_str()
+                    .unwrap()
+            })
+            .collect();
+
+        assert!(uris.contains(&"/tmp/a.circom"));
+        assert!(uris.contains(&"/tmp/b.circom"));
     }
 }
