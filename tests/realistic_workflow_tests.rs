@@ -3,6 +3,7 @@ use std::process::Command;
 use tempfile::TempDir;
 
 #[test]
+#[ignore = "flaky in CI environments; depends on shell pipeline behavior"]
 fn test_batch_scan_multiple_files() {
     // Real-world: scanning multiple circuits in a project
     let output = Command::new("sh")

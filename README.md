@@ -80,6 +80,8 @@ Pattern matching library for ZK circuit vulnerability detection. Scans circuit c
 
 ## Installation
 
+MSRV: **Rust 1.80+** (uses `std::sync::LazyLock` in semantic analysis internals).
+
 ```bash
 # Install from source
 cargo install --path . --locked
