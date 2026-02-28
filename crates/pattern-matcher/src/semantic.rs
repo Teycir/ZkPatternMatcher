@@ -1,3 +1,4 @@
+use pattern_types::{PatternMatch, Severity};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -18,6 +19,7 @@ pub struct SignalAssignment {
     pub line_no: usize,
     pub signal: String,
     pub kind: AssignKind,
+    pub tautological_equality: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +49,12 @@ static RE_VAR_DECL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*var\s+(\w+)").expect("valid regex"));
 static RE_SELF_EQ: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(\w+)\s*===\s*(\w+)\s*;").expect("valid regex"));
+static RE_IDENT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\b").expect("valid regex"));
+static RE_UNCONSTRAINED_CAPTURE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(?:signal\s+)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\s*\[[^\]]+\])*)\s*<--")
+        .expect("valid regex")
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -66,6 +74,73 @@ pub fn two_pass_scan(source: &str) -> Vec<SemanticFinding> {
     findings
 }
 
+/// Calibrate syntax-level findings in semantic mode without suppressing any
+/// detections.
+///
+/// When `allow_severity_downgrade` is `false`, semantic context is still added
+/// to messages but original severities are preserved (for strict CI gates).
+pub fn calibrate_pattern_matches(
+    source: &str,
+    matches: &mut [PatternMatch],
+    allow_severity_downgrade: bool,
+) {
+    if matches.is_empty() {
+        return;
+    }
+
+    let contexts = collect_template_constraint_context(source);
+    if contexts.is_empty() {
+        return;
+    }
+
+    for m in matches.iter_mut() {
+        if m.pattern_id != "unconstrained_assignment" && m.pattern_id != "signal_without_constraint"
+        {
+            continue;
+        }
+
+        let Some(signal) = extract_unconstrained_signal(&m.location.matched_text) else {
+            continue;
+        };
+
+        let Some(ctx) = contexts
+            .iter()
+            .find(|ctx| m.location.line >= ctx.start_line && m.location.line <= ctx.end_line)
+        else {
+            continue;
+        };
+
+        if !ctx.constrained_signals.contains(&signal) {
+            continue;
+        }
+
+        match m.pattern_id.as_str() {
+            "unconstrained_assignment" => {
+                if allow_severity_downgrade
+                    && matches!(m.severity, Severity::Critical | Severity::High)
+                {
+                    m.severity = Severity::Medium;
+                }
+                m.message = format!(
+                    "Unconstrained assignment operator (<--) detected; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
+                    signal
+                );
+            }
+            "signal_without_constraint" => {
+                if allow_severity_downgrade && !matches!(m.severity, Severity::Low | Severity::Info)
+                {
+                    m.severity = Severity::Low;
+                }
+                m.message = format!(
+                    "Signal assigned without immediate constraint; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
+                    signal
+                );
+            }
+            _ => {}
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Template splitting
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +148,13 @@ pub fn two_pass_scan(source: &str) -> Vec<SemanticFinding> {
 #[derive(Debug)]
 struct TemplateBlock {
     lines: Vec<(usize, String)>, // (1-based global line number, line content)
+}
+
+#[derive(Debug)]
+struct TemplateConstraintContext {
+    start_line: usize,
+    end_line: usize,
+    constrained_signals: HashSet<String>,
 }
 
 /// Split source into per-template blocks so that signal names don't bleed
@@ -125,6 +207,40 @@ fn split_into_templates(source: &str) -> Vec<TemplateBlock> {
     templates
 }
 
+fn collect_template_constraint_context(source: &str) -> Vec<TemplateConstraintContext> {
+    let stripped_source = strip_comments_preserve_lines(source);
+    let templates = split_into_templates(&stripped_source);
+    let mut contexts = Vec::new();
+
+    for tmpl in templates {
+        let Some((start_line, _)) = tmpl.lines.first() else {
+            continue;
+        };
+        let Some((end_line, _)) = tmpl.lines.last() else {
+            continue;
+        };
+
+        let assignments = collect_assignments(&tmpl);
+        let mut constrained_signals: HashSet<String> = assignments
+            .iter()
+            .filter(|a| {
+                matches!(a.kind, AssignKind::Constrained)
+                    || (matches!(a.kind, AssignKind::Equality) && !a.tautological_equality)
+            })
+            .map(|a| a.signal.clone())
+            .collect();
+        constrained_signals.extend(collect_constraint_signal_usage(&tmpl.lines));
+
+        contexts.push(TemplateConstraintContext {
+            start_line: *start_line,
+            end_line: *end_line,
+            constrained_signals,
+        });
+    }
+
+    contexts
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-template analysis
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,10 +249,14 @@ fn scan_template(tmpl: &TemplateBlock) -> Vec<SemanticFinding> {
     let mut findings = Vec::new();
 
     let assignments = collect_assignments(tmpl);
+    let constrained_usage = collect_constraint_signal_usage(&tmpl.lines);
     let port_wirings = collect_port_wirings(tmpl);
 
-    findings.extend(check_orphaned_unconstrained(&assignments));
-    findings.extend(check_signal_aliasing(&port_wirings));
+    findings.extend(check_orphaned_unconstrained(
+        &assignments,
+        &constrained_usage,
+    ));
+    findings.extend(check_signal_aliasing(&port_wirings, &assignments));
     findings.extend(check_var_equality_constraint(&tmpl.lines));
 
     findings
@@ -157,25 +277,90 @@ fn collect_assignments(tmpl: &TemplateBlock) -> Vec<SignalAssignment> {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
                 kind: AssignKind::Unconstrained,
+                tautological_equality: false,
             });
         } else if let Some(caps) = RE_CONSTRAINED.captures(&stripped) {
             out.push(SignalAssignment {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
                 kind: AssignKind::Constrained,
+                tautological_equality: false,
             });
         }
 
         if let Some(caps) = RE_EQUALITY.captures(&stripped) {
+            let tautological_equality = RE_SELF_EQ
+                .captures(&stripped)
+                .map(|eq_caps| normalize_signal(&eq_caps[1]) == normalize_signal(&eq_caps[2]))
+                .unwrap_or(false);
             out.push(SignalAssignment {
                 line_no: *line_no,
                 signal: normalize_signal(&caps[1]),
                 kind: AssignKind::Equality,
+                tautological_equality,
             });
         }
     }
 
     out
+}
+
+fn is_keyword(token: &str) -> bool {
+    matches!(
+        token,
+        "template"
+            | "signal"
+            | "input"
+            | "output"
+            | "component"
+            | "var"
+            | "for"
+            | "if"
+            | "else"
+            | "while"
+            | "return"
+            | "function"
+            | "pragma"
+            | "include"
+    )
+}
+
+fn collect_constraint_signal_usage(lines: &[(usize, String)]) -> HashSet<String> {
+    let mut usage = HashSet::new();
+
+    for (_, line) in lines {
+        let stripped = strip_comment(line);
+        if !stripped.contains("<==") && !stripped.contains("===") {
+            continue;
+        }
+
+        // `x === x` is tautological and should not count as evidence that `x`
+        // is actually constrained.
+        if let Some(caps) = RE_SELF_EQ.captures(&stripped) {
+            let lhs = normalize_signal(&caps[1]);
+            let rhs = normalize_signal(&caps[2]);
+            if lhs == rhs {
+                continue;
+            }
+        }
+
+        for caps in RE_IDENT.captures_iter(&stripped) {
+            let token = &caps[1];
+            if is_keyword(token) {
+                continue;
+            }
+            usage.insert(token.to_string());
+        }
+    }
+
+    usage
+}
+
+fn extract_unconstrained_signal(matched_text: &str) -> Option<String> {
+    let stripped = strip_comment(matched_text);
+    RE_UNCONSTRAINED_CAPTURE
+        .captures(&stripped)
+        .map(|caps| normalize_signal(&caps[1]))
 }
 
 fn normalize_signal(raw: &str) -> String {
@@ -257,16 +442,26 @@ fn collect_port_wirings(tmpl: &TemplateBlock) -> Vec<PortWiring> {
 // Pass 2 — Checks
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn check_orphaned_unconstrained(assignments: &[SignalAssignment]) -> Vec<SemanticFinding> {
+fn check_orphaned_unconstrained(
+    assignments: &[SignalAssignment],
+    constrained_usage: &HashSet<String>,
+) -> Vec<SemanticFinding> {
     let constrained: HashSet<&str> = assignments
         .iter()
-        .filter(|a| matches!(a.kind, AssignKind::Constrained | AssignKind::Equality))
+        .filter(|a| {
+            matches!(a.kind, AssignKind::Constrained)
+                || (matches!(a.kind, AssignKind::Equality) && !a.tautological_equality)
+        })
         .map(|a| a.signal.as_str())
         .collect();
 
     assignments
         .iter()
-        .filter(|a| a.kind == AssignKind::Unconstrained && !constrained.contains(a.signal.as_str()))
+        .filter(|a| {
+            a.kind == AssignKind::Unconstrained
+                && !constrained.contains(a.signal.as_str())
+                && !constrained_usage.contains(a.signal.as_str())
+        })
         .map(|a| SemanticFinding {
             line_no: a.line_no,
             signal: a.signal.clone(),
@@ -282,7 +477,10 @@ fn check_orphaned_unconstrained(assignments: &[SignalAssignment]) -> Vec<Semanti
         .collect()
 }
 
-fn check_signal_aliasing(wirings: &[PortWiring]) -> Vec<SemanticFinding> {
+fn check_signal_aliasing(
+    wirings: &[PortWiring],
+    assignments: &[SignalAssignment],
+) -> Vec<SemanticFinding> {
     let mut signal_to_ports: HashMap<&str, Vec<(usize, String)>> = HashMap::new();
 
     for w in wirings {
@@ -308,19 +506,28 @@ fn check_signal_aliasing(wirings: &[PortWiring]) -> Vec<SemanticFinding> {
             .map(|(ln, p)| format!("{} (line {})", p, ln))
             .collect();
 
+        let has_unconstrained_assignment = assignments
+            .iter()
+            .any(|a| a.signal == *signal && matches!(a.kind, AssignKind::Unconstrained));
+        let (severity, headline) = if has_unconstrained_assignment {
+            ("high", "HIGH: unconstrained signal")
+        } else {
+            ("medium", "MEDIUM: signal")
+        };
+
         findings.push(SemanticFinding {
             line_no: ports[0].0,
             signal: signal.to_string(),
             finding_id: "component_input_aliasing".into(),
             message: format!(
-                "HIGH: signal '{}' wired to multiple component ports: {}. \
-                 Shared signals reduce circuit degrees of freedom — \
-                 verify this aliasing is intentional and does not allow \
-                 a malicious prover to satisfy constraints with forged inputs.",
+                "{} '{}' wired to multiple component ports: {}. \
+                 Shared signals can reduce circuit degrees of freedom — \
+                 verify this aliasing is intentional and constraints still bind all paths.",
+                headline,
                 signal,
                 port_list.join(", ")
             ),
-            severity: "high".into(),
+            severity: severity.into(),
         });
     }
 

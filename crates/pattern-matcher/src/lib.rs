@@ -37,6 +37,7 @@ pub struct PatternMatcher {
     compiled_fancy_regex: HashMap<String, FancyRegex>,
     limits: MatcherLimits,
     semantic_enabled: bool,
+    strict_severity: bool,
 }
 
 impl PatternMatcher {
@@ -141,11 +142,17 @@ impl PatternMatcher {
             compiled_fancy_regex,
             limits,
             semantic_enabled: false,
+            strict_severity: false,
         })
     }
 
     pub fn with_semantic(mut self, enabled: bool) -> Self {
         self.semantic_enabled = enabled;
+        self
+    }
+
+    pub fn with_strict_severity(mut self, enabled: bool) -> Self {
+        self.strict_severity = enabled;
         self
     }
 
@@ -267,6 +274,8 @@ impl PatternMatcher {
                     },
                 });
             }
+
+            semantic::calibrate_pattern_matches(text, &mut matches, !self.strict_severity);
         }
 
         matches
