@@ -402,3 +402,88 @@ fn hard_guard_keeps_single_equation_unchecked_division_flagged() {
     assert_eq!(unconstrained.len(), 1);
     assert_eq!(unconstrained[0].severity, Severity::Critical);
 }
+
+#[test]
+fn hard_guard_suppresses_canonical_iszero_witness() {
+    let source = r#"
+    template T() {
+        signal input in;
+        signal output out;
+        signal inv;
+        inv <-- in != 0 ? 1 / in : 0;
+        out <== -in * inv + 1;
+        in * out === 0;
+    }
+    "#;
+
+    let matcher = PatternMatcher::new(unconstrained_library(
+        r"^\s*(?:signal\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\s*\[[^\]]+\])*\s*<--\s*[^;]+;\s*$",
+    ))
+    .expect("matcher")
+    .with_semantic(true);
+
+    let unconstrained: Vec<_> = matcher
+        .scan_text(source)
+        .into_iter()
+        .filter(|m| m.pattern_id == "unconstrained_assignment")
+        .collect();
+    assert!(unconstrained.is_empty());
+}
+
+#[test]
+fn hard_guard_suppresses_quotient_remainder_recomposition_pattern() {
+    let source = r#"
+    template T() {
+        signal input in;
+        var P = 17;
+        component q_bits = to_bits_exact(5);
+        component r_bits = to_bits_exact(5);
+        q_bits.in <-- in \ P;
+        r_bits.in <-- in % P;
+        q_bits.in * P + r_bits.in === in;
+    }
+    "#;
+
+    let matcher = PatternMatcher::new(unconstrained_library(
+        r"^\s*(?:signal\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\s*\[[^\]]+\])*\s*<--\s*[^;]+;\s*$",
+    ))
+    .expect("matcher")
+    .with_semantic(true);
+
+    let unconstrained: Vec<_> = matcher
+        .scan_text(source)
+        .into_iter()
+        .filter(|m| m.pattern_id == "unconstrained_assignment")
+        .collect();
+    assert!(unconstrained.is_empty());
+}
+
+#[test]
+fn hard_guard_suppresses_inverse_quotient_k_pattern() {
+    let source = r#"
+    template T() {
+        signal input in;
+        signal out;
+        var P = 17;
+        out <== 3;
+        component bits_k = to_bits_exact(5);
+        bits_k.in <-- out * in \ P;
+        component bits = to_bits_exact(5);
+        bits.in <== out;
+        out * in - 1 === bits_k.in * P;
+    }
+    "#;
+
+    let matcher = PatternMatcher::new(unconstrained_library(
+        r"^\s*(?:signal\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\s*\[[^\]]+\])*\s*<--\s*[^;]+;\s*$",
+    ))
+    .expect("matcher")
+    .with_semantic(true);
+
+    let unconstrained: Vec<_> = matcher
+        .scan_text(source)
+        .into_iter()
+        .filter(|m| m.pattern_id == "unconstrained_assignment")
+        .collect();
+    assert!(unconstrained.is_empty());
+}

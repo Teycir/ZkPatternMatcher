@@ -35,12 +35,18 @@ pub struct SemanticFinding {
 // Lazy-compiled regex patterns
 // ─────────────────────────────────────────────────────────────────────────────
 
-static RE_UNCONSTRAINED: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*<--").expect("valid regex"));
-static RE_CONSTRAINED: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*<==").expect("valid regex"));
-static RE_EQUALITY: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(\w[\w\[\]]*)\s*===").expect("valid regex"));
+static RE_UNCONSTRAINED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(?:signal\s+)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\s*\[[^\]]+\])*)\s*<--")
+        .expect("valid regex")
+});
+static RE_CONSTRAINED: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(?:signal\s+)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\s*\[[^\]]+\])*)\s*<==")
+        .expect("valid regex")
+});
+static RE_EQUALITY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(?:signal\s+)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\s*\[[^\]]+\])*)\s*===")
+        .expect("valid regex")
+});
 static RE_PORT_WIRING: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(\w+)\.(\w+)\s*<==\s*(\w+)").expect("valid regex"));
 static RE_TEMPLATE_START: LazyLock<Regex> =
@@ -59,6 +65,24 @@ static RE_NUMERIC_LITERAL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b\d+\b").expect("valid regex"));
 static RE_VAR_MUTATION: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*([A-Za-z_]\w*)\s*(?:\+?=|-?=|\*?=|/?=)\s*.+;\s*$").expect("valid regex")
+});
+static RE_ISZERO_INV_EXPR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*!=\s*0\s*\?\s*1\s*/\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*:\s*0\s*$",
+    )
+    .expect("valid regex")
+});
+static RE_SIMPLE_QR_EXPR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\[[^\]]+\])?)\s*([%\\])\s*([A-Za-z_]\w*|\d+)\s*$",
+    )
+    .expect("valid regex")
+});
+static RE_MODINV_K_EXPR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\[[^\]]+\])?)\s*\*\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\[[^\]]+\])?)\s*\\\s*([A-Za-z_]\w*|\d+)\s*$",
+    )
+    .expect("valid regex")
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -649,6 +673,234 @@ fn has_var_recomposition_proof(
     })
 }
 
+fn compact_line_for_match(line: &str) -> String {
+    let stripped = strip_comment(line);
+    let no_indices = strip_indices(&stripped);
+    no_indices.chars().filter(|c| !c.is_whitespace()).collect()
+}
+
+fn unconstrained_assignment_expr(
+    lines: &[(usize, String)],
+    assignment: &SignalAssignment,
+) -> Option<String> {
+    let line = lines
+        .iter()
+        .find(|(line_no, _)| *line_no == assignment.line_no)
+        .map(|(_, line)| line)?;
+    let stripped = strip_comment(line);
+    let lhs_re = format!(
+        r"^\s*{}\s*(?:\[[^\]]+\])*\s*<--\s*(.+?)\s*;\s*$",
+        regex::escape(&assignment.signal)
+    );
+    let re = Regex::new(&lhs_re).ok()?;
+    let captures = re.captures(&stripped)?;
+    captures.get(1).map(|m| m.as_str().trim().to_string())
+}
+
+fn component_from_signal_input(signal: &str) -> Option<String> {
+    let (component, port) = signal.split_once('.')?;
+    if port == "in" {
+        Some(component.to_string())
+    } else {
+        None
+    }
+}
+
+fn has_to_bits_component(lines: &[(usize, String)], component: &str) -> bool {
+    let expected = format!("component{}=to_bits_exact(", component);
+    lines
+        .iter()
+        .map(|(_, line)| compact_line_for_match(line))
+        .any(|compact| compact.contains(&expected))
+}
+
+fn has_canonical_iszero_guard(lines: &[(usize, String)], assignment: &SignalAssignment) -> bool {
+    let Some(expr) = unconstrained_assignment_expr(lines, assignment) else {
+        return false;
+    };
+    let Some(expr_caps) = RE_ISZERO_INV_EXPR.captures(&expr) else {
+        return false;
+    };
+    let lhs_in = normalize_signal(&expr_caps[1]);
+    let rhs_in = normalize_signal(&expr_caps[2]);
+    if lhs_in != rhs_in {
+        return false;
+    }
+
+    let signal = &assignment.signal;
+    let out_line_re = format!(
+        r"^([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)<==-([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\*{}\+1;$",
+        regex::escape(signal)
+    );
+    let out_re = match Regex::new(&out_line_re) {
+        Ok(re) => re,
+        Err(_) => return false,
+    };
+
+    let mut out_var: Option<String> = None;
+    for (line_no, line) in lines {
+        if *line_no <= assignment.line_no {
+            continue;
+        }
+        let compact = compact_line_for_match(line);
+        let Some(caps) = out_re.captures(&compact) else {
+            continue;
+        };
+        let in_var = normalize_signal(&caps[2]);
+        if in_var != lhs_in {
+            continue;
+        }
+        out_var = Some(normalize_signal(&caps[1]));
+        break;
+    }
+
+    let Some(out_var) = out_var else {
+        return false;
+    };
+
+    lines.iter().any(|(line_no, line)| {
+        if *line_no <= assignment.line_no {
+            return false;
+        }
+        let compact = compact_line_for_match(line);
+        let Some(eq_caps) = Regex::new(
+            r"^([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)===0;$",
+        )
+        .ok()
+        .and_then(|re| re.captures(&compact)) else {
+            return false;
+        };
+        let a = normalize_signal(&eq_caps[1]);
+        let b = normalize_signal(&eq_caps[2]);
+        (a == lhs_in && b == out_var) || (a == out_var && b == lhs_in)
+    })
+}
+
+fn parse_qr_expr(expr: &str) -> Option<(String, char, String)> {
+    let caps = RE_SIMPLE_QR_EXPR.captures(expr)?;
+    let input = normalize_signal(&caps[1]);
+    let op = caps[2].chars().next()?;
+    let modulus = caps[3].to_string();
+    Some((input, op, modulus))
+}
+
+fn has_quotient_remainder_recomposition_guard(
+    lines: &[(usize, String)],
+    assignments: &[SignalAssignment],
+    assignment: &SignalAssignment,
+) -> bool {
+    let Some(expr) = unconstrained_assignment_expr(lines, assignment) else {
+        return false;
+    };
+    let Some((input, op, modulus)) = parse_qr_expr(&expr) else {
+        return false;
+    };
+    if op != '\\' && op != '%' {
+        return false;
+    }
+
+    let counterpart = assignments
+        .iter()
+        .filter(|a| matches!(a.kind, AssignKind::Unconstrained))
+        .filter(|a| a.line_no != assignment.line_no)
+        .find_map(|candidate| {
+            let candidate_expr = unconstrained_assignment_expr(lines, candidate)?;
+            let (c_input, c_op, c_modulus) = parse_qr_expr(&candidate_expr)?;
+            if c_input == input && c_modulus == modulus && c_op != op {
+                Some((candidate.signal.clone(), candidate.line_no, c_op))
+            } else {
+                None
+            }
+        });
+
+    let Some((counterpart_signal, counterpart_line, counterpart_op)) = counterpart else {
+        return false;
+    };
+
+    let (q_signal, r_signal) = if op == '\\' {
+        (assignment.signal.clone(), counterpart_signal.clone())
+    } else if counterpart_op == '\\' {
+        (counterpart_signal.clone(), assignment.signal.clone())
+    } else {
+        return false;
+    };
+
+    let Some(q_component) = component_from_signal_input(&q_signal) else {
+        return false;
+    };
+    let Some(r_component) = component_from_signal_input(&r_signal) else {
+        return false;
+    };
+
+    if !has_to_bits_component(lines, &q_component) || !has_to_bits_component(lines, &r_component) {
+        return false;
+    }
+
+    let min_line = assignment.line_no.max(counterpart_line);
+    let expected_a = format!("{}*{}+{}==={};", q_signal, modulus, r_signal, input);
+    let expected_b = format!("{}+{}*{}==={};", r_signal, q_signal, modulus, input);
+
+    lines.iter().any(|(line_no, line)| {
+        if *line_no <= min_line {
+            return false;
+        }
+        let compact = compact_line_for_match(line);
+        compact == expected_a || compact == expected_b
+    })
+}
+
+fn has_inverse_quotient_guard(lines: &[(usize, String)], assignment: &SignalAssignment) -> bool {
+    let Some(expr) = unconstrained_assignment_expr(lines, assignment) else {
+        return false;
+    };
+    let Some(caps) = RE_MODINV_K_EXPR.captures(&expr) else {
+        return false;
+    };
+
+    let out_signal = normalize_signal(&caps[1]);
+    let input_signal = normalize_signal(&caps[2]);
+    let modulus = caps[3].to_string();
+
+    let expected = format!(
+        "{}*{}-1==={}*{};",
+        out_signal, input_signal, assignment.signal, modulus
+    );
+    let expected_rev = format!(
+        "{}*{}==={}*{}-1;",
+        assignment.signal, modulus, out_signal, input_signal
+    );
+
+    let has_recomposition = lines.iter().any(|(line_no, line)| {
+        if *line_no <= assignment.line_no {
+            return false;
+        }
+        let compact = compact_line_for_match(line);
+        compact == expected || compact == expected_rev
+    });
+    if !has_recomposition {
+        return false;
+    }
+
+    let out_in_re = match Regex::new(&format!(
+        r"^([A-Za-z_]\w*)\.in<=={};$",
+        regex::escape(&out_signal)
+    )) {
+        Ok(re) => re,
+        Err(_) => return false,
+    };
+
+    lines.iter().any(|(line_no, line)| {
+        if *line_no <= assignment.line_no {
+            return false;
+        }
+        let compact = compact_line_for_match(line);
+        let Some(caps) = out_in_re.captures(&compact) else {
+            return false;
+        };
+        has_to_bits_component(lines, &caps[1])
+    })
+}
+
 fn collect_hard_mitigated_signals(
     lines: &[(usize, String)],
     assignments: &[SignalAssignment],
@@ -705,10 +957,17 @@ fn collect_hard_mitigated_signals(
             constraint_lines,
             &unconstrained_signals,
         );
+        let has_canonical_iszero = has_canonical_iszero_guard(lines, assignment);
+        let has_qr_recomposition =
+            has_quotient_remainder_recomposition_guard(lines, assignments, assignment);
+        let has_inverse_quotient = has_inverse_quotient_guard(lines, assignment);
 
         if has_two_anchored_constraints
             || (has_binary_constraint && has_var_recomposition)
             || (has_bit_component_wiring && has_structural_constraint)
+            || has_canonical_iszero
+            || has_qr_recomposition
+            || has_inverse_quotient
         {
             mitigated.insert(assignment.signal.clone());
         }
