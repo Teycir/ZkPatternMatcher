@@ -1,4 +1,4 @@
-use pattern_types::{PatternMatch, Severity};
+use pattern_types::PatternMatch;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -55,6 +55,11 @@ static RE_UNCONSTRAINED_CAPTURE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(?:signal\s+)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?(?:\s*\[[^\]]+\])*)\s*<--")
         .expect("valid regex")
 });
+static RE_NUMERIC_LITERAL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d+\b").expect("valid regex"));
+static RE_VAR_MUTATION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*([A-Za-z_]\w*)\s*(?:\+?=|-?=|\*?=|/?=)\s*.+;\s*$").expect("valid regex")
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
@@ -74,16 +79,9 @@ pub fn two_pass_scan(source: &str) -> Vec<SemanticFinding> {
     findings
 }
 
-/// Calibrate syntax-level findings in semantic mode without suppressing any
-/// detections.
-///
-/// When `allow_severity_downgrade` is `false`, semantic context is still added
-/// to messages but original severities are preserved (for strict CI gates).
-pub fn calibrate_pattern_matches(
-    source: &str,
-    matches: &mut [PatternMatch],
-    allow_severity_downgrade: bool,
-) {
+/// Enrich syntax-level findings with semantic context without changing
+/// severities.
+pub fn calibrate_pattern_matches(source: &str, matches: &mut [PatternMatch]) {
     if matches.is_empty() {
         return;
     }
@@ -116,29 +114,112 @@ pub fn calibrate_pattern_matches(
 
         match m.pattern_id.as_str() {
             "unconstrained_assignment" => {
-                if allow_severity_downgrade
-                    && matches!(m.severity, Severity::Critical | Severity::High)
-                {
-                    m.severity = Severity::Medium;
-                }
-                m.message = format!(
-                    "Unconstrained assignment operator (<--) detected; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
-                    signal
-                );
+                let is_locally_constrained = ctx.locally_constrained_signals.contains(&signal);
+
+                m.message = if is_locally_constrained {
+                    format!(
+                        "Unconstrained assignment operator (<--) detected; semantic context shows '{}' is constrained shortly after assignment in the same template (likely witness-hint pattern). Keep under manual review.",
+                        signal
+                    )
+                } else {
+                    format!(
+                        "Unconstrained assignment operator (<--) detected; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
+                        signal
+                    )
+                };
             }
             "signal_without_constraint" => {
-                if allow_severity_downgrade && !matches!(m.severity, Severity::Low | Severity::Info)
-                {
-                    m.severity = Severity::Low;
-                }
-                m.message = format!(
-                    "Signal assigned without immediate constraint; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
-                    signal
-                );
+                let is_locally_constrained = ctx.locally_constrained_signals.contains(&signal);
+
+                m.message = if is_locally_constrained {
+                    format!(
+                        "Signal assigned without immediate constraint; semantic context shows '{}' is constrained shortly after assignment in the same template (likely witness-hint pattern).",
+                        signal
+                    )
+                } else {
+                    format!(
+                        "Signal assigned without immediate constraint; semantic context shows '{}' participates in constraints in the same template. Manual review required.",
+                        signal
+                    )
+                };
             }
             _ => {}
         }
     }
+}
+
+fn find_template_context(
+    contexts: &[TemplateConstraintContext],
+    line_no: usize,
+) -> Option<&TemplateConstraintContext> {
+    contexts
+        .iter()
+        .find(|ctx| line_no >= ctx.start_line && line_no <= ctx.end_line)
+}
+
+fn is_hard_mitigated_pattern_match(
+    m: &PatternMatch,
+    contexts: &[TemplateConstraintContext],
+) -> bool {
+    if m.pattern_id != "unconstrained_assignment" && m.pattern_id != "signal_without_constraint" {
+        return false;
+    }
+
+    let Some(signal) = extract_unconstrained_signal(&m.location.matched_text) else {
+        return false;
+    };
+
+    let Some(ctx) = find_template_context(contexts, m.location.line) else {
+        return false;
+    };
+
+    ctx.hard_mitigated_signals.contains(&signal)
+}
+
+/// Deduplicate overlapping findings and drop matches that satisfy hard
+/// mitigation guards derived from validated false-positive rationales.
+pub fn dedup_and_filter_pattern_matches(source: &str, matches: &mut Vec<PatternMatch>) {
+    if matches.is_empty() {
+        return;
+    }
+
+    let contexts = collect_template_constraint_context(source);
+    let unconstrained_by_line_signal: HashSet<(usize, String)> = matches
+        .iter()
+        .filter(|m| m.pattern_id == "unconstrained_assignment")
+        .filter_map(|m| {
+            extract_unconstrained_signal(&m.location.matched_text)
+                .map(|signal| (m.location.line, signal))
+        })
+        .collect();
+
+    let mut seen_exact: HashSet<(String, usize, usize, String)> = HashSet::new();
+
+    matches.retain(|m| {
+        let exact_key = (
+            m.pattern_id.clone(),
+            m.location.line,
+            m.location.column,
+            m.location.matched_text.clone(),
+        );
+        if !seen_exact.insert(exact_key) {
+            return false;
+        }
+
+        if m.pattern_id == "signal_without_constraint" {
+            if let Some(signal) = extract_unconstrained_signal(&m.location.matched_text) {
+                if unconstrained_by_line_signal.contains(&(m.location.line, signal)) {
+                    return false;
+                }
+            }
+        }
+
+        if is_hard_mitigated_pattern_match(m, &contexts) {
+            return false;
+        }
+
+        true
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +236,18 @@ struct TemplateConstraintContext {
     start_line: usize,
     end_line: usize,
     constrained_signals: HashSet<String>,
+    locally_constrained_signals: HashSet<String>,
+    hard_mitigated_signals: HashSet<String>,
+}
+
+#[derive(Debug)]
+struct ConstraintLine {
+    line_no: usize,
+    text: String,
+    tokens: HashSet<String>,
+    has_numeric_literal: bool,
+    has_multiplication: bool,
+    has_add_or_sub: bool,
 }
 
 /// Split source into per-template blocks so that signal names don't bleed
@@ -230,11 +323,17 @@ fn collect_template_constraint_context(source: &str) -> Vec<TemplateConstraintCo
             .map(|a| a.signal.clone())
             .collect();
         constrained_signals.extend(collect_constraint_signal_usage(&tmpl.lines));
+        let locally_constrained_signals = collect_locally_constrained_signals(&tmpl.lines);
+        let constraint_lines = collect_non_taut_constraint_lines(&tmpl.lines);
+        let hard_mitigated_signals =
+            collect_hard_mitigated_signals(&tmpl.lines, &assignments, &constraint_lines);
 
         contexts.push(TemplateConstraintContext {
             start_line: *start_line,
             end_line: *end_line,
             constrained_signals,
+            locally_constrained_signals,
+            hard_mitigated_signals,
         });
     }
 
@@ -256,7 +355,7 @@ fn scan_template(tmpl: &TemplateBlock) -> Vec<SemanticFinding> {
         &assignments,
         &constrained_usage,
     ));
-    findings.extend(check_signal_aliasing(&port_wirings, &assignments));
+    findings.extend(check_signal_aliasing(&port_wirings));
     findings.extend(check_var_equality_constraint(&tmpl.lines));
 
     findings
@@ -354,6 +453,268 @@ fn collect_constraint_signal_usage(lines: &[(usize, String)]) -> HashSet<String>
     }
 
     usage
+}
+
+fn line_mentions_signal(line: &str, signal: &str) -> bool {
+    let signal_pattern = format!(r"\b{}\b", regex::escape(signal));
+    Regex::new(&signal_pattern)
+        .map(|re| re.is_match(line))
+        .unwrap_or(false)
+}
+
+fn collect_locally_constrained_signals(lines: &[(usize, String)]) -> HashSet<String> {
+    const LOCAL_WINDOW_LINES: usize = 12;
+    let mut out = HashSet::new();
+
+    for (assignment_line, assignment_text) in lines {
+        let assignment_stripped = strip_comment(assignment_text);
+        let Some(caps) = RE_UNCONSTRAINED_CAPTURE.captures(&assignment_stripped) else {
+            continue;
+        };
+        let signal = normalize_signal(&caps[1]);
+
+        let is_locally_constrained = lines.iter().any(|(line_no, line)| {
+            if *line_no <= *assignment_line || *line_no > *assignment_line + LOCAL_WINDOW_LINES {
+                return false;
+            }
+
+            let stripped = strip_comment(line);
+            if !stripped.contains("<==") && !stripped.contains("===") {
+                return false;
+            }
+
+            if let Some(caps) = RE_SELF_EQ.captures(&stripped) {
+                let lhs = normalize_signal(&caps[1]);
+                let rhs = normalize_signal(&caps[2]);
+                if lhs == rhs {
+                    return false;
+                }
+            }
+
+            line_mentions_signal(&stripped, &signal)
+        });
+
+        if is_locally_constrained {
+            out.insert(signal);
+        }
+    }
+
+    out
+}
+
+fn collect_non_taut_constraint_lines(lines: &[(usize, String)]) -> Vec<ConstraintLine> {
+    let mut out = Vec::new();
+
+    for (line_no, line) in lines {
+        let stripped = strip_comment(line);
+        if !stripped.contains("<==") && !stripped.contains("===") {
+            continue;
+        }
+
+        if let Some(caps) = RE_SELF_EQ.captures(&stripped) {
+            let lhs = normalize_signal(&caps[1]);
+            let rhs = normalize_signal(&caps[2]);
+            if lhs == rhs {
+                continue;
+            }
+        }
+
+        let tokens: HashSet<String> = RE_IDENT
+            .captures_iter(&stripped)
+            .filter_map(|caps| {
+                let token = &caps[1];
+                if is_keyword(token) {
+                    return None;
+                }
+                Some(normalize_signal(token))
+            })
+            .collect();
+
+        out.push(ConstraintLine {
+            line_no: *line_no,
+            text: stripped.clone(),
+            tokens,
+            has_numeric_literal: RE_NUMERIC_LITERAL.is_match(&stripped),
+            has_multiplication: stripped.contains('*'),
+            has_add_or_sub: stripped.contains('+') || stripped.contains('-'),
+        });
+    }
+
+    out
+}
+
+fn constraint_has_anchor_for_signal(
+    line: &ConstraintLine,
+    signal: &str,
+    unconstrained_signals: &HashSet<String>,
+) -> bool {
+    if line.has_numeric_literal {
+        return true;
+    }
+
+    line.tokens
+        .iter()
+        .any(|token| token != signal && !unconstrained_signals.contains(token))
+}
+
+fn strip_indices(expr: &str) -> String {
+    let mut out = String::with_capacity(expr.len());
+    let mut depth = 0usize;
+
+    for c in expr.chars() {
+        if c == '[' {
+            depth += 1;
+            continue;
+        }
+        if c == ']' && depth > 0 {
+            depth -= 1;
+            continue;
+        }
+        if depth == 0 {
+            out.push(c);
+        }
+    }
+
+    out
+}
+
+fn is_binary_constraint_for_signal(line: &str, signal: &str) -> bool {
+    let normalized = strip_indices(line);
+    let compact: String = normalized.chars().filter(|c| !c.is_whitespace()).collect();
+    let sig = regex::escape(signal);
+    let variants = [
+        format!("{sig}*(1-{sig})===0"),
+        format!("(1-{sig})*{sig}===0"),
+        format!("{sig}*({sig}-1)===0"),
+        format!("({sig}-1)*{sig}===0"),
+    ];
+
+    variants.iter().any(|v| compact.contains(v))
+}
+
+fn has_bit_component_input_wiring(
+    lines: &[(usize, String)],
+    signal: &str,
+    assignment_line: usize,
+) -> bool {
+    lines.iter().any(|(line_no, line)| {
+        if *line_no <= assignment_line {
+            return false;
+        }
+        let stripped = strip_comment(line);
+        if !stripped.contains("<==") || !line_mentions_signal(&stripped, signal) {
+            return false;
+        }
+        let lower = stripped.to_ascii_lowercase();
+        lower.contains(".in") && lower.contains("bit")
+    })
+}
+
+fn has_var_recomposition_proof(
+    lines: &[(usize, String)],
+    signal: &str,
+    assignment_line: usize,
+    constraint_lines: &[ConstraintLine],
+    unconstrained_signals: &HashSet<String>,
+) -> bool {
+    let supporting_vars: HashSet<String> = lines
+        .iter()
+        .filter(|(line_no, _)| *line_no > assignment_line)
+        .filter_map(|(_, line)| {
+            let stripped = strip_comment(line);
+            if stripped.contains("<==") || stripped.contains("===") {
+                return None;
+            }
+            let caps = RE_VAR_MUTATION.captures(&stripped)?;
+            if !line_mentions_signal(&stripped, signal) {
+                return None;
+            }
+            Some(caps[1].to_string())
+        })
+        .collect();
+
+    if supporting_vars.is_empty() {
+        return false;
+    }
+
+    constraint_lines.iter().any(|line| {
+        if line.line_no <= assignment_line {
+            return false;
+        }
+
+        supporting_vars.iter().any(|var| {
+            line.tokens.contains(var)
+                && constraint_has_anchor_for_signal(line, var, unconstrained_signals)
+        })
+    })
+}
+
+fn collect_hard_mitigated_signals(
+    lines: &[(usize, String)],
+    assignments: &[SignalAssignment],
+    constraint_lines: &[ConstraintLine],
+) -> HashSet<String> {
+    let unconstrained_signals: HashSet<String> = assignments
+        .iter()
+        .filter(|a| matches!(a.kind, AssignKind::Unconstrained))
+        .map(|a| a.signal.clone())
+        .collect();
+
+    let mut mitigated = HashSet::new();
+
+    for assignment in assignments
+        .iter()
+        .filter(|a| matches!(a.kind, AssignKind::Unconstrained))
+    {
+        let signal_constraints: Vec<&ConstraintLine> = constraint_lines
+            .iter()
+            .filter(|line| {
+                line.line_no > assignment.line_no && line.tokens.contains(&assignment.signal)
+            })
+            .collect();
+
+        if signal_constraints.is_empty() {
+            continue;
+        }
+
+        let anchored_constraints: Vec<&ConstraintLine> = signal_constraints
+            .iter()
+            .copied()
+            .filter(|line| {
+                constraint_has_anchor_for_signal(line, &assignment.signal, &unconstrained_signals)
+            })
+            .collect();
+
+        if anchored_constraints.is_empty() {
+            continue;
+        }
+
+        let has_two_anchored_constraints = anchored_constraints.len() >= 2;
+        let has_binary_constraint = signal_constraints
+            .iter()
+            .any(|line| is_binary_constraint_for_signal(&line.text, &assignment.signal));
+        let has_structural_constraint = anchored_constraints
+            .iter()
+            .any(|line| line.has_multiplication || line.has_add_or_sub);
+        let has_bit_component_wiring =
+            has_bit_component_input_wiring(lines, &assignment.signal, assignment.line_no);
+        let has_var_recomposition = has_var_recomposition_proof(
+            lines,
+            &assignment.signal,
+            assignment.line_no,
+            constraint_lines,
+            &unconstrained_signals,
+        );
+
+        if has_two_anchored_constraints
+            || (has_binary_constraint && has_var_recomposition)
+            || (has_bit_component_wiring && has_structural_constraint)
+        {
+            mitigated.insert(assignment.signal.clone());
+        }
+    }
+
+    mitigated
 }
 
 fn extract_unconstrained_signal(matched_text: &str) -> Option<String> {
@@ -477,10 +838,7 @@ fn check_orphaned_unconstrained(
         .collect()
 }
 
-fn check_signal_aliasing(
-    wirings: &[PortWiring],
-    assignments: &[SignalAssignment],
-) -> Vec<SemanticFinding> {
+fn check_signal_aliasing(wirings: &[PortWiring]) -> Vec<SemanticFinding> {
     let mut signal_to_ports: HashMap<&str, Vec<(usize, String)>> = HashMap::new();
 
     for w in wirings {
@@ -506,28 +864,18 @@ fn check_signal_aliasing(
             .map(|(ln, p)| format!("{} (line {})", p, ln))
             .collect();
 
-        let has_unconstrained_assignment = assignments
-            .iter()
-            .any(|a| a.signal == *signal && matches!(a.kind, AssignKind::Unconstrained));
-        let (severity, headline) = if has_unconstrained_assignment {
-            ("high", "HIGH: unconstrained signal")
-        } else {
-            ("medium", "MEDIUM: signal")
-        };
-
         findings.push(SemanticFinding {
             line_no: ports[0].0,
             signal: signal.to_string(),
             finding_id: "component_input_aliasing".into(),
             message: format!(
-                "{} '{}' wired to multiple component ports: {}. \
+                "MEDIUM: signal '{}' wired to multiple component ports: {}. \
                  Shared signals can reduce circuit degrees of freedom — \
                  verify this aliasing is intentional and constraints still bind all paths.",
-                headline,
                 signal,
                 port_list.join(", ")
             ),
-            severity: severity.into(),
+            severity: "medium".into(),
         });
     }
 

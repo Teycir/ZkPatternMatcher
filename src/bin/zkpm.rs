@@ -20,7 +20,6 @@ fn print_usage() {
     eprintln!("    -r, --recursive             Scan directories recursively");
     eprintln!("    --ignore <pattern>          Ignore files matching pattern");
     eprintln!("    --semantic                  Enable two-pass semantic checks (cross-line)");
-    eprintln!("    --strict-severity           Keep original severities in semantic mode");
     eprintln!("    -h, --help                  Print help information");
     eprintln!("    -V, --version               Print version information");
 }
@@ -64,7 +63,6 @@ fn main() -> Result<()> {
     let mut format = config.output.default_format.as_str();
     let mut recursive = false;
     let mut semantic = false;
-    let mut strict_severity = false;
     let mut custom_ignore: Vec<String> = Vec::new();
     let mut arg_offset = 1;
 
@@ -89,10 +87,6 @@ fn main() -> Result<()> {
             }
             "--semantic" => {
                 semantic = true;
-                arg_offset += 1;
-            }
-            "--strict-severity" => {
-                strict_severity = true;
                 arg_offset += 1;
             }
             "--ignore" if arg_offset + 1 < args.len() => {
@@ -177,8 +171,7 @@ fn main() -> Result<()> {
             }
             let matcher =
                 zk_pattern_matcher::PatternMatcher::new_with_limits(library, matcher_limits)?
-                    .with_semantic(semantic)
-                    .with_strict_severity(strict_severity);
+                    .with_semantic(semantic);
 
             let mut ignore_patterns = load_ignore_patterns();
             ignore_patterns.extend(custom_ignore);
