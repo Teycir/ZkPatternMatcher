@@ -267,8 +267,8 @@ fn test_cli_semantic_flag_emits_semantic_findings() {
 }
 
 #[test]
-fn test_cli_strict_severity_preserves_original_levels_in_semantic_mode() {
-    let circuit_file = "/tmp/zkpm_strict_severity_case.circom";
+fn test_cli_semantic_mode_keeps_original_levels_without_mode_toggle() {
+    let circuit_file = "/tmp/zkpm_single_mode_case.circom";
 
     std::fs::write(
         circuit_file,
@@ -306,34 +306,7 @@ fn test_cli_strict_severity_preserves_original_levels_in_semantic_mode() {
         .find(|m| m["pattern_id"] == "unconstrained_assignment")
         .and_then(|m| m["severity"].as_str())
         .expect("unconstrained_assignment severity should be present");
-    assert_eq!(semantic_severity, "medium");
-
-    let strict_output = Command::new("cargo")
-        .args([
-            "run",
-            "--bin",
-            "zkpm",
-            "--",
-            "--semantic",
-            "--strict-severity",
-            "--format",
-            "json",
-            "patterns/production.yaml",
-            circuit_file,
-        ])
-        .output()
-        .expect("Failed to execute zkpm");
-    let strict_stdout = String::from_utf8_lossy(&strict_output.stdout);
-    let strict_json: serde_json::Value =
-        serde_json::from_str(&strict_stdout).expect("Output should be valid JSON");
-    let strict_severity = strict_json["matches"]
-        .as_array()
-        .expect("matches should be an array")
-        .iter()
-        .find(|m| m["pattern_id"] == "unconstrained_assignment")
-        .and_then(|m| m["severity"].as_str())
-        .expect("unconstrained_assignment severity should be present");
-    assert_eq!(strict_severity, "critical");
+    assert_eq!(semantic_severity, "critical");
 
     std::fs::remove_file(circuit_file).ok();
 }
