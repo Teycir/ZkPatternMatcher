@@ -210,3 +210,42 @@ fn test_pattern_performance_metrics() {
     assert_eq!(false_positives, 0, "Should have zero false positives");
     assert_eq!(false_negatives, 0, "Should have zero false negatives");
 }
+
+#[test]
+fn test_unconstrained_assignment_matches_full_statement_not_substring() {
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
+        .expect("Failed to load patterns");
+    let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
+
+    let code = r#"
+    k_bits.in <-- out * in[0] \ P;
+    "#;
+
+    let matches = matcher.scan_text(code);
+    let unconstrained: Vec<_> = matches
+        .iter()
+        .filter(|m| m.pattern_id == "unconstrained_assignment")
+        .collect();
+
+    assert_eq!(unconstrained.len(), 1);
+    assert_eq!(
+        unconstrained[0].location.matched_text.trim_start(),
+        "k_bits.in <-- out * in[0] \\ P;"
+    );
+}
+
+#[test]
+fn test_unconstrained_assignment_with_trailing_comment_is_detected() {
+    let library = load_pattern_library(Path::new("patterns/production.yaml"))
+        .expect("Failed to load patterns");
+    let matcher = PatternMatcher::new(library).expect("Failed to create matcher");
+
+    let code = r#"
+    signal x <-- y; // witness hint
+    "#;
+
+    let matches = matcher.scan_text(code);
+    assert!(matches
+        .iter()
+        .any(|m| m.pattern_id == "unconstrained_assignment"));
+}

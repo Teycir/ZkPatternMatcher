@@ -2,7 +2,7 @@ patterns:
   # Pattern 1: Unconstrained assignment with context (improved from bare '<--')
   - id: unconstrained_assignment
     kind: regex
-    pattern: '\b\w+\s*<--\s*\w+'
+    pattern: '^\s*(?:signal\s+)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\s*\[[^\]]+\])*\s*<--\s*[^;]+;\s*(?://.*)?$'
     message: 'Unconstrained assignment operator (<--) detected'
     description: |
       The <-- operator creates a witness assignment without a constraint, allowing the prover 
@@ -73,7 +73,7 @@ patterns:
   # Pattern 6: Unconstrained signal declaration (heuristic)
   - id: signal_without_constraint
     kind: regex
-    pattern: 'signal\s+\w+\s*<--\s*[^;]+;\s*$'
+    pattern: '^\s*signal\s+[A-Za-z_]\w*(?:\s*\[[^\]]+\])*\s*<--\s*[^;]+;\s*(?://.*)?$'
     message: 'Signal assigned without immediate constraint'
     description: |
       Signal uses <-- without an immediately following constraint. This is a heuristic check - 
